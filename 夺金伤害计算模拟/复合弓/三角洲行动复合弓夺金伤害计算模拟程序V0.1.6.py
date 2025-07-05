@@ -1,35 +1,39 @@
 from decimal import Decimal, ROUND_HALF_UP
 
+# 使用Decimal进行高精度计算
 def round_decimal(value, decimals):
-    d = Decimal(str(value))
-    rounded = d.quantize(Decimal('0.' + '0'*decimals), rounding=ROUND_HALF_UP)
-    return float(rounded)
+    if isinstance(value, Decimal):
+        d = value
+    else:
+        d = Decimal(str(value))
+    rounded = d.quantize(Decimal('1.' + '0'*decimals), rounding=ROUND_HALF_UP)
+    return rounded
 
 print("本程序由B站繁星攻略组制作")
 print("注：受限于数据精度问题，本程序给出的所有时间相关计算仅供参考，与实际存在一定误差")
 
 # 部位倍率字典（基础值）
 base_location_multipliers = {
-    "头部": 1.7,
-    "胸部": 1,
-    "腹部": 0.9,
-    "下腹部": 0.9,
-    "大臂": 0.45,
-    "小臂": 0.45,
-    "大腿": 0.45,
-    "小腿": 0.45
+    "头部": Decimal('1.7'),
+    "胸部": Decimal('1'),
+    "腹部": Decimal('0.9'),
+    "下腹部": Decimal('0.9'),
+    "大臂": Decimal('0.45'),
+    "小臂": Decimal('0.45'),
+    "大腿": Decimal('0.45'),
+    "小腿": Decimal('0.45')
 }
 
 # 增强弓弦后的部位倍率
 enhanced_location_multipliers = {
-    "头部": 2.0,  # 头部倍率提升
-    "胸部": 1,
-    "腹部": 0.9,
-    "下腹部": 0.9,
-    "大臂": 0.45,
-    "小臂": 0.45,
-    "大腿": 0.45,
-    "小腿": 0.45
+    "头部": Decimal('2.0'),  # 头部倍率提升
+    "胸部": Decimal('1'),
+    "腹部": Decimal('0.9'),
+    "下腹部": Decimal('0.9'),
+    "大臂": Decimal('0.45'),
+    "小臂": Decimal('0.45'),
+    "大腿": Decimal('0.45'),
+    "小腿": Decimal('0.45')
 }
 
 # 箭矢参数
@@ -37,23 +41,29 @@ arrows = {
     1: {
         "name": "玻纤柳叶箭矢",
         "penetration": 3,
-        "damage_multiplier": 1.0,
-        "armor_attenuation": [0.9, 0.9, 0.9, 1.0, 0.5, 0.4],
-        "armor_multiplier": 1.0
+        "damage_multiplier": Decimal('1.0'),
+        "armor_attenuation": [
+            Decimal('0.9'), Decimal('0.9'), Decimal('0.9'), 
+            Decimal('1.0'), Decimal('0.5'), Decimal('0.4')
+        ],
+        "armor_multiplier": Decimal('1.0')
     },
     2: {
         "name": "碳纤维刺骨箭矢",
         "penetration": 4,
-        "damage_multiplier": 1.0,
-        "armor_attenuation": [1.0, 1.0, 1.0, 1.0, 1.1, 0.6],
-        "armor_multiplier": 1.0
+        "damage_multiplier": Decimal('1.0'),
+        "armor_attenuation": [
+            Decimal('1.0'), Decimal('1.0'), Decimal('1.0'), 
+            Decimal('1.0'), Decimal('1.1'), Decimal('0.6')
+        ],
+        "armor_multiplier": Decimal('1.0')
     },
     3: {
         "name": "碳纤维穿甲箭矢",
         "penetration": 5,
-        "damage_multiplier": 1.0,
-        "armor_attenuation": 1.1,  # 恒定值
-        "armor_multiplier": 1.0
+        "damage_multiplier": Decimal('1.0'),
+        "armor_attenuation": Decimal('1.1'),  # 恒定值
+        "armor_multiplier": Decimal('1.0')
     }
 }
 
@@ -64,15 +74,16 @@ armor_protection = {
     3: ["胸部", "腹部", "下腹部", "大臂"]  # 重甲
 }
 
-def get_float_input(prompt, min_val, max_val, decimals=1):
+def get_decimal_input(prompt, min_val, max_val, decimals=1):
     while True:
         try:
-            value = float(input(prompt))
+            value_str = input(prompt)
+            value = Decimal(value_str)
             value = round_decimal(value, decimals)
             if min_val <= value <= max_val:
                 return value
             print(f"输入值必须在 {min_val} 到 {max_val} 之间")
-        except ValueError:
+        except Exception:
             print("请输入有效的数字")
 
 def get_int_input(prompt, min_val, max_val):
@@ -100,7 +111,7 @@ def get_arrow_armor_attenuation(arrow_type, armor_level):
         return arrow_data["armor_attenuation"]
     if 1 <= armor_level <= 6:
         return arrow_data["armor_attenuation"][armor_level - 1]
-    return 1.0  # 默认值
+    return Decimal('1.0')  # 默认值
 
 def calculate_penetration_rate(penetration, armor_level, is_head=False):
     """
@@ -109,27 +120,28 @@ def calculate_penetration_rate(penetration, armor_level, is_head=False):
     """
     if penetration < armor_level:
         # 穿透等级小于防护等级
-        return max(0.16 - (armor_level - penetration) * 0.02, 0.02)
+        rate = Decimal('0.16') - Decimal(str(armor_level - penetration)) * Decimal('0.02')
+        return max(rate, Decimal('0.02'))
     elif penetration == armor_level:
         # 穿透等级等于防护等级
-        return 0.5 if is_head else 0.75
+        return Decimal('0.5') if is_head else Decimal('0.75')
     elif penetration == armor_level + 1:
         # 穿透等级等于防护等级+1
-        return 0.75 if is_head else 0.9
+        return Decimal('0.75') if is_head else Decimal('0.9')
     else:  # penetration >= armor_level + 2
         # 穿透等级大于等于防护等级+2
-        return 1.0
+        return Decimal('1.0')
 
 def main():
-    print("===== 弓箭伤害模拟器 =====")
+    print("===== 弓箭伤害模拟器 (高精度计算版) =====")
     
     # 玩家初始状态
-    health = 100.0
-    helmet_durability = get_float_input("输入头盔耐久 (0.0-60.0): ", 0.0, 60.0)
+    health = Decimal('100.0')
+    helmet_durability = get_decimal_input("输入头盔耐久 (0.0-60.0): ", Decimal('0.0'), Decimal('60.0'))
     helmet_level = get_int_input("输入头盔防护等级 (0-6, 0表示无头盔): ", 0, 6)
-    armor_durability = get_float_input("输入护甲耐久 (0.0-150.0): ", 0.0, 150.0)
+    armor_durability = get_decimal_input("输入护甲耐久 (0.0-150.0): ", Decimal('0.0'), Decimal('150.0'))
     armor_level = get_int_input("输入护甲防护等级 (0-6, 0表示无护甲): ", 0, 6)
-    distance = get_float_input("输入目标距离 (0.0-200.0): ", 0.0, 200.0)
+    distance = get_decimal_input("输入目标距离 (0.0-200.0): ", Decimal('0.0'), Decimal('200.0'))
     armor_type = get_int_input("输入护甲类型 (1-半甲, 2-全甲, 3-重甲): ", 1, 3)
     arrow_type = get_int_input("输入箭矢类型 (1-玻纤柳叶, 2-碳纤维刺骨, 3-碳纤维穿甲): ", 1, 3)
     
@@ -141,20 +153,20 @@ def main():
     
     # 武器衰减倍率 - 增强弓弦影响距离阈值
     if enhanced_string:
-        weapon_attenuation = 1.0 if distance <= 84.5 else 0.9
+        weapon_attenuation = Decimal('1.0') if distance <= Decimal('84.5') else Decimal('0.9')
     else:
-        weapon_attenuation = 1.0 if distance <= 65 else 0.9
+        weapon_attenuation = Decimal('1.0') if distance <= Decimal('65') else Decimal('0.9')
     
-    shot_interval = 500  # 毫秒（射击间隔）
+    shot_interval = Decimal('500')  # 毫秒（射击间隔）
     
     # 统计信息
-    total_damage = 0.0
-    total_armor_damage = 0.0
+    total_damage = Decimal('0.0')
+    total_armor_damage = Decimal('0.0')
     location_hits = {loc: 0 for loc in location_multipliers}
     location_hits["未命中"] = 0
     total_hits = 0
     total_shots = 0
-    total_time_ms = 0  # 总耗时（毫秒）
+    total_time_ms = Decimal('0')  # 总耗时（毫秒）
     shot_type_count = {"瞬发": 0, "满蓄": 0}  # 记录射击方式使用次数
     
     # 显示当前配置
@@ -181,15 +193,15 @@ def main():
         
         if shot_mode == "1":
             # 瞬发
-            base_damage_this = 76.5
-            base_armor_damage_this = 55.25
-            draw_time_this = 80  # 毫秒（拉弓时间）
+            base_damage_this = Decimal('76.5')
+            base_armor_damage_this = Decimal('55.25')
+            draw_time_this = Decimal('80')  # 毫秒（拉弓时间）
             shot_type = "瞬发"
         else:
             # 满蓄
-            base_damage_this = 90.0
-            base_armor_damage_this = 65.0
-            draw_time_this = 460 if enhanced_string else 540  # 毫秒（拉弓时间）
+            base_damage_this = Decimal('90.0')
+            base_armor_damage_this = Decimal('65.0')
+            draw_time_this = Decimal('460') if enhanced_string else Decimal('540')  # 毫秒（拉弓时间）
             shot_type = "满蓄"
         
         shot_type_count[shot_type] += 1
@@ -204,7 +216,7 @@ def main():
             total_time_ms += draw_time_this
             if total_shots > 1:
                 total_time_ms += shot_interval
-            print(f"{shot_type}未命中! 耗时: {total_time_ms/1000:.3f}秒")
+            print(f"{shot_type}未命中! 耗时: {float(total_time_ms/Decimal('1000')):.3f}秒")
             continue
         
         # 验证部位输入
@@ -226,23 +238,23 @@ def main():
         
         # 确定保护状态
         protected = False
-        armor_damage_taken = 0.0
-        penetration_rate = 1.0
-        armor_dmg_value = 0.0
+        armor_damage_taken = Decimal('0.0')
+        penetration_rate = Decimal('1.0')
+        armor_dmg_value = Decimal('0.0')
         gear_type = ""
-        gear_durability = 0.0
+        gear_durability = Decimal('0.0')
         gear_level = 0
         
         # 头部命中处理
         if location == "头部":
-            if helmet_level > 0 and helmet_durability > 0:
+            if helmet_level > 0 and helmet_durability > Decimal('0'):
                 protected = True
                 gear_type = "头盔"
                 gear_durability = helmet_durability
                 gear_level = helmet_level
         # 身体部位命中处理
         else:
-            if armor_level > 0 and armor_durability > 0 and location in armor_protection[armor_type]:
+            if armor_level > 0 and armor_durability > Decimal('0') and location in armor_protection[armor_type]:
                 protected = True
                 gear_type = "护甲"
                 gear_durability = armor_durability
@@ -251,7 +263,7 @@ def main():
         # 伤害计算
         if not protected or gear_level == 0:  # 未受保护
             damage = base_damage_this * location_mult * weapon_attenuation
-            armor_damage_taken = 0.0
+            armor_damage_taken = Decimal('0.0')
         else:
             # 获取箭矢参数
             arrow_data = arrows[arrow_type]
@@ -281,13 +293,14 @@ def main():
                 damage_part2 = base_damage_this * arrow_data["damage_multiplier"] * location_mult * weapon_attenuation
                 damage = ratio * damage_part1 + (1 - ratio) * damage_part2
                 armor_damage_taken = gear_durability
-                new_durability = 0.0
+                new_durability = Decimal('0.0')
             
             # 更新装备耐久
+            new_durability = round_decimal(new_durability, 1)  # 耐久精确到0.1
             if gear_type == "头盔":
-                helmet_durability = new_durability
+                helmet_durability = max(new_durability, Decimal('0.0'))
             else:
-                armor_durability = new_durability
+                armor_durability = max(new_durability, Decimal('0.0'))
         
         # 四舍五入伤害值
         damage = round_decimal(damage, 2)
@@ -299,31 +312,33 @@ def main():
         
         # 输出结果
         print(f"\n{shot_type}命中 {location}!")
-        print(f"造成伤害: {damage:.2f}")
+        print(f"造成伤害: {float(damage):.2f}")
         
         if protected:
-            print(f"{gear_type}损失耐久: {armor_damage_taken:.1f}")
-            if gear_durability > 0 and armor_damage_taken >= gear_durability:
+            armor_damage_taken = round_decimal(armor_damage_taken, 1)
+            print(f"{gear_type}损失耐久: {float(armor_damage_taken):.1f}")
+            if gear_durability > Decimal('0') and armor_damage_taken >= gear_durability:
                 print(f"⚔️ {gear_type}已击碎!")
         
-        if health > 0:
-            print(f"剩余生命: {round_decimal(health, 1):.1f}")
-            print(f"头盔耐久: {round_decimal(helmet_durability, 1):.1f}")
-            print(f"护甲耐久: {round_decimal(armor_durability, 1):.1f}")
+        if health > Decimal('0'):
+            health_rounded = round_decimal(health, 1)
+            print(f"剩余生命: {float(health_rounded):.1f}")
+            print(f"头盔耐久: {float(helmet_durability):.1f}")
+            print(f"护甲耐久: {float(armor_durability):.1f}")
         else:
             print("💀 你死了!")
-            print(f"最终头盔耐久: {round_decimal(helmet_durability, 1):.1f}")
-            print(f"最终护甲耐久: {round_decimal(armor_durability, 1):.1f}")
+            print(f"最终头盔耐久: {float(helmet_durability):.1f}")
+            print(f"最终护甲耐久: {float(armor_durability):.1f}")
             input("按回车键结束模拟计算")
             break
     
     # 输出统计信息
     print("\n===== 战斗统计 =====")
-    print(f"总伤害: {total_damage:.2f}")
-    print(f"总护甲伤害: {total_armor_damage:.1f}")
+    print(f"总伤害: {float(total_damage):.2f}")
+    print(f"总护甲伤害: {float(total_armor_damage):.1f}")
     print(f"总攻击次数: {total_shots}")
     print(f"总命中次数: {total_hits}")
-    print(f"总耗时: {total_time_ms/1000:.3f}秒")
+    print(f"总耗时: {float(total_time_ms/Decimal('1000')):.3f}秒")
     
     print("\n射击方式统计:")
     for shot_type, count in shot_type_count.items():
