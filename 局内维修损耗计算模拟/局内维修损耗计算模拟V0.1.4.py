@@ -2,7 +2,7 @@ from decimal import Decimal, getcontext, ROUND_HALF_UP, ROUND_CEILING
 import math
 import re
 
-print("本程序由B站繁星攻略组与用户Dec128合作制作")
+print("本程序由B站繁星攻略组制作，感谢B站用户Dec128的协助")
 
 # 设置Decimal上下文精度
 getcontext().prec = 28
@@ -185,6 +185,9 @@ def main():
         print(f"维修后上限: {new_max.quantize(Decimal('0.1'))}")
         print(f"维修后耐久: {new_durability.quantize(Decimal('0.1'))}")
         print(f"本次消耗维修点数: {repair_points}")
+    
+    # 等待用户按Enter键结束程序
+    input("\n计算完成，按Enter键结束程序...")
 
 if __name__ == "__main__":
     main()
