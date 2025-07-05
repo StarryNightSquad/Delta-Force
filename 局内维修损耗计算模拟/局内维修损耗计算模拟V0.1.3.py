@@ -42,7 +42,12 @@ def validate_input(prompt, input_type, min_val=None, max_val=None, decimal_place
             # 小数验证
             elif input_type == 'decimal':
                 # 验证小数格式
-                if not re.match(r'^\d+(\.\d{1,' + str(decimal_places) + r'})?$', value_str):
+                if decimal_places > 0:
+                    pattern = r'^\d+(\.\d{1,' + str(decimal_places) + r'})?$'
+                else:
+                    pattern = r'^\d+$'
+                
+                if not re.match(pattern, value_str):
                     raise ValueError(f"最多允许 {decimal_places} 位小数")
                 
                 value = Decimal(value_str)
@@ -63,7 +68,10 @@ def validate_input(prompt, input_type, min_val=None, max_val=None, decimal_place
                 if reference is not None and value > reference:
                     raise ValueError(f"值不能大于 {reference}")
                 
-                return value.quantize(Decimal('1.' + '0' * decimal_places))
+                if decimal_places > 0:
+                    return value.quantize(Decimal('1.' + '0' * decimal_places))
+                else:
+                    return value
             
         except ValueError as e:
             print(f"输入错误: {e}，请重新输入")
@@ -78,34 +86,42 @@ def main():
     repair_loss = validate_input("维修损耗(0-1最多两位小数): ", 'decimal', 0, 1, 2)
     
     # 输入四种维修工具的维修效率
-    tools = ["自制维修包", "标准维修包", "精密维修包", "高级维修组合"]
+    tools = {
+        "1": "自制维修包",
+        "2": "标准维修包",
+        "3": "精密维修包",
+        "4": "高级维修组合"
+    }
+    
     efficiencies = {}
-    for tool in tools:
-        eff = validate_input(f"{tool}的维修效率(0.01-10最多两位小数): ", 'decimal', Decimal('0.01'), Decimal('10'), 2)
-        efficiencies[tool] = eff
+    print("\n请设置各种维修工具的维修效率:")
+    for num, tool in tools.items():
+        eff = validate_input(f"{num}. {tool}的维修效率(0.01-10最多两位小数): ", 'decimal', Decimal('0.01'), Decimal('10'), 2)
+        efficiencies[num] = eff
     
     # 维修循环
-    total_repair_points = Decimal(0)
     repair_count = 0
     
     while True:
         repair_count += 1
         print(f"\n=== 第 {repair_count} 次维修 ===")
-        
-        # 显示当前状态
         print(f"当前状态: 上限={current_max.quantize(Decimal('0.1'))} 耐久={current_durability.quantize(Decimal('0.1'))}")
         
         # 输入本次使用的维修工具
         while True:
-            tool = input("请选择维修包(自制维修包/标准维修包/精密维修包/高级维修组合): ")
-            if tool in efficiencies:
+            print("\n请选择维修工具:")
+            for num, tool in tools.items():
+                print(f"{num}. {tool} (效率={efficiencies[num]})")
+            
+            choice = input("请输入维修工具编号(1-4): ")
+            if choice in efficiencies:
+                tool_name = tools[choice]
+                efficiency = efficiencies[choice]
                 break
-            print("错误: 无效的维修包选择，请重新输入")
+            print("错误: 无效的选择，请输入1-4之间的数字")
         
         # 输入维修点数
         repair_points = validate_input("维修点数(1-200整数): ", 'int', 1, 200)
-        total_repair_points += repair_points
-        efficiency = efficiencies[tool]
         
         # 计算修复耐久
         repair_durability = repair_points * efficiency
@@ -118,7 +134,7 @@ def main():
                 log_term = Decimal(0)
             else:
                 log_term = Decimal(math.log10(float(ratio)))
-        except ValueError:
+        except (ValueError, OverflowError):
             log_term = Decimal(0)
         
         # 计算耐久损失比例
@@ -152,7 +168,6 @@ def main():
             print(f"维修后上限: {new_max.quantize(Decimal('0.1'))}")
             print(f"维修后耐久: {new_max.quantize(Decimal('0.1'))}")
             print(f"剩余维修点数: {remaining_points}")
-            print(f"总消耗维修点数: {total_repair_points - remaining_points}")
             break
         
         # 检查是否不可维修
@@ -170,7 +185,6 @@ def main():
         print(f"维修后上限: {new_max.quantize(Decimal('0.1'))}")
         print(f"维修后耐久: {new_durability.quantize(Decimal('0.1'))}")
         print(f"本次消耗维修点数: {repair_points}")
-        print(f"累计消耗维修点数: {total_repair_points}")
 
 if __name__ == "__main__":
     main()
