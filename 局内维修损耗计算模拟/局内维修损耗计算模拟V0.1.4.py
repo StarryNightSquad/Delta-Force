@@ -1,8 +1,10 @@
+print("本程序由B站繁星攻略组制作，感谢B站用户Dec128与乂丶z提供的数据支持")
+
 from decimal import Decimal, getcontext, ROUND_HALF_UP, ROUND_CEILING
 import math
 import re
-
-print("本程序由B站繁星攻略组制作，感谢B站用户Dec128的协助")
+import openpyxl
+import os
 
 # 设置Decimal上下文精度
 getcontext().prec = 28
@@ -12,7 +14,77 @@ def round_to_two(x):
     """四舍五入到小数点后两位"""
     return x.quantize(Decimal('0.01'))
 
-def validate_input(prompt, input_type, min_val=None, max_val=None, decimal_places=None, reference=None):
+def load_armor_data(file_path):
+    """从Excel文件加载护甲和头盔数据"""
+    wb = openpyxl.load_workbook(file_path)
+    sheet = wb['护甲数据']
+    
+    armors = {3: [], 4: [], 5: [], 6: []}
+    helmets = {3: [], 4: [], 5: [], 6: []}
+    
+    # 从第4行开始读取数据（跳过前3行标题）
+    for row in sheet.iter_rows(min_row=4, values_only=True):
+        # 提取基本数据
+        name = row[0]  # A列
+        if not name:
+            continue
+            
+        level = row[1]  # B列
+        armor_type = row[2]  # C列
+        max_durability = row[6]  # G列
+        repair_loss = row[8]  # I列
+        
+        # 维修效率列调整
+        efficiency_self = row[10]  # K列 (自制)
+        efficiency_std = row[12]   # M列 (标准)
+        efficiency_prec = row[14]  # O列 (精密)
+        efficiency_adv = row[16]   # Q列 (高级)
+        
+        # 只处理3-6级装备
+        if not isinstance(level, (int, float)) or level < 3:
+            continue
+        
+        level = int(level)
+        
+        # 处理维修效率值（有些单元格包含范围，取平均值）
+        def parse_efficiency(value):
+            if isinstance(value, str) and '-' in value:
+                parts = value.split('-')
+                try:
+                    return (float(parts[0]) + float(parts[1])) / 2
+                except (ValueError, TypeError):
+                    return 0
+            try:
+                return float(value) if value is not None else 0
+            except (TypeError, ValueError):
+                return 0
+        
+        # 创建装备数据字典
+        equipment = {
+            'name': name,
+            'level': level,
+            'type': armor_type,
+            'max_durability': max_durability,
+            'repair_loss': repair_loss if repair_loss is not None else 0,
+            'efficiencies': {
+                '1': parse_efficiency(efficiency_self),  # 自制
+                '2': parse_efficiency(efficiency_std),   # 标准
+                '3': parse_efficiency(efficiency_prec),  # 精密
+                '4': parse_efficiency(efficiency_adv)    # 高级
+            }
+        }
+        
+        # 分类到护甲或头盔
+        if armor_type in ['半甲', '全甲', '重甲']:
+            if level in armors:
+                armors[level].append(equipment)
+        elif armor_type in ['无', '有']:
+            if level in helmets:
+                helmets[level].append(equipment)
+    
+    return armors, helmets
+
+def validate_input(prompt, input_type, min_val=None, max_val=None, decimal_places=None, reference=None, reference_desc=None):
     """
     验证用户输入
     :param prompt: 提示信息
@@ -21,6 +93,7 @@ def validate_input(prompt, input_type, min_val=None, max_val=None, decimal_place
     :param max_val: 最大值
     :param decimal_places: 允许的小数位数
     :param reference: 参考值（用于上限验证）
+    :param reference_desc: 参考值的描述（用于错误提示）
     """
     while True:
         try:
@@ -65,8 +138,10 @@ def validate_input(prompt, input_type, min_val=None, max_val=None, decimal_place
                     raise ValueError(f"值不能大于 {max_val}")
                 
                 # 参考值验证
-                if reference is not None and value > reference:
-                    raise ValueError(f"值不能大于 {reference}")
+                if reference is not None:
+                    if value > reference:
+                        ref_desc = reference_desc if reference_desc else f"{reference}"
+                        raise ValueError(f"值不能大于 {ref_desc}")
                 
                 if decimal_places > 0:
                     return value.quantize(Decimal('1.' + '0' * decimal_places))
@@ -79,25 +154,110 @@ def validate_input(prompt, input_type, min_val=None, max_val=None, decimal_place
 def main():
     print("===== 装备维修计算器 =====")
     
-    # 输入基础参数
-    initial_max = validate_input("初始上限(1-150整数): ", 'int', 1, 150)
-    current_max = validate_input("当前上限(1-150最多一位小数): ", 'decimal', 1, 150, 1, initial_max)
-    current_durability = validate_input("剩余耐久(0-150最多一位小数): ", 'decimal', 0, 150, 1, current_max)
-    repair_loss = validate_input("维修损耗(0-1最多两位小数): ", 'decimal', 0, 1, 2)
+    # 加载护甲数据
+    file_path = "S5护甲数据.xlsx"
+    if not os.path.exists(file_path):
+        print(f"错误: 找不到数据文件 {file_path}")
+        return
     
-    # 输入四种维修工具的维修效率
-    tools = {
-        "1": "自制维修包",
-        "2": "标准维修包",
-        "3": "精密维修包",
-        "4": "高级维修组合"
-    }
+    try:
+        armors, helmets = load_armor_data(file_path)
+        print("护甲数据加载成功!")
+    except Exception as e:
+        print(f"加载护甲数据失败: {e}")
+        return
     
-    efficiencies = {}
-    print("\n请设置各种维修工具的维修效率:")
-    for num, tool in tools.items():
-        eff = validate_input(f"{num}. {tool}的维修效率(0.01-10最多两位小数): ", 'decimal', Decimal('0.01'), Decimal('10'), 2)
-        efficiencies[num] = eff
+    # 选择装备类型（调整顺序：1头盔 2护甲）
+    print("\n请选择装备类型:")
+    print("1. 头盔")
+    print("2. 护甲")
+    equip_type = input("请输入装备类型编号(1-2): ")
+    
+    if equip_type not in ['1', '2']:
+        print("无效的选择")
+        return
+    
+    # 选择装备等级
+    print("\n请选择装备等级:")
+    print("3. 3级")
+    print("4. 4级")
+    print("5. 5级")
+    print("6. 6级")
+    equip_level = input("请输入装备等级编号(3-6): ")
+    
+    if equip_level not in ['3', '4', '5', '6']:
+        print("无效的选择")
+        return
+    
+    equip_level = int(equip_level)
+    
+    # 选择具体装备（根据装备类型选择对应列表）
+    if equip_type == '1':  # 头盔
+        equipment_list = helmets[equip_level]
+        equip_type_name = "头盔"
+    else:  # 护甲
+        equipment_list = armors[equip_level]
+        equip_type_name = "护甲"
+    
+    if not equipment_list:
+        print(f"没有找到{equip_level}级的{equip_type_name}")
+        return
+    
+    print(f"\n请选择具体的{equip_level}级{equip_type_name}:")
+    for i, equip in enumerate(equipment_list, 1):
+        print(f"{i}. {equip['name']}")
+    
+    try:
+        choice = int(input(f"请输入装备编号(1-{len(equipment_list)}): "))
+        if choice < 1 or choice > len(equipment_list):
+            raise ValueError
+    except ValueError:
+        print("无效的选择")
+        return
+    
+    selected_equip = equipment_list[choice - 1]
+    
+    # 显示选择的装备信息
+    print(f"\n已选择: {selected_equip['name']}")
+    print(f"装备等级: {selected_equip['level']}级")
+    print(f"装备类型: {selected_equip['type']}")
+    print(f"初始上限: {selected_equip['max_durability']}")
+    print(f"维修损耗: {selected_equip['repair_loss']}")
+    print("维修效率:")
+    print(f"  1. 自制维修包: {selected_equip['efficiencies']['1']}")
+    print(f"  2. 标准维修包: {selected_equip['efficiencies']['2']}")
+    print(f"  3. 精密维修包: {selected_equip['efficiencies']['3']}")
+    print(f"  4. 高级维修组合: {selected_equip['efficiencies']['4']}")
+    
+    # 设置基础参数
+    initial_max = Decimal(selected_equip['max_durability'])
+    repair_loss = Decimal(selected_equip['repair_loss'])
+    efficiencies = selected_equip['efficiencies']
+    
+    # 输入当前状态 - 添加严格的验证
+    print("\n请输入装备当前状态:")
+    
+    # 当前上限验证：不得高于初始上限
+    current_max = validate_input(
+        f"当前上限(1-{initial_max}最多一位小数): ",
+        'decimal',
+        1,
+        150,
+        1,
+        reference=initial_max,
+        reference_desc=f"装备的初始上限({initial_max})"
+    )
+    
+    # 剩余耐久验证：不得高于当前上限
+    current_durability = validate_input(
+        f"剩余耐久(0-{current_max}最多一位小数): ",
+        'decimal',
+        0,
+        150,
+        1,
+        reference=current_max,
+        reference_desc=f"当前上限({current_max})"
+    )
     
     # 维修循环
     repair_count = 0
@@ -110,18 +270,42 @@ def main():
         # 输入本次使用的维修工具
         while True:
             print("\n请选择维修工具:")
-            for num, tool in tools.items():
-                print(f"{num}. {tool} (效率={efficiencies[num]})")
+            print("1. 自制维修包")
+            print("2. 标准维修包")
+            print("3. 精密维修包")
+            print("4. 高级维修组合")
             
             choice = input("请输入维修工具编号(1-4): ")
             if choice in efficiencies:
-                tool_name = tools[choice]
-                efficiency = efficiencies[choice]
+                tool_name = {
+                    '1': '自制维修包',
+                    '2': '标准维修包',
+                    '3': '精密维修包',
+                    '4': '高级维修组合'
+                }[choice]
+                efficiency = Decimal(efficiencies[choice])
+                print(f"已选择: {tool_name} (效率={efficiency})")
                 break
             print("错误: 无效的选择，请输入1-4之间的数字")
         
+        # 根据装备类型和维修工具设置维修点数上限
+        if equip_type == '2':  # 护甲
+            max_points = {
+                '1': 50,   # 自制维修包
+                '2': 75,   # 标准维修包
+                '3': 120,  # 精密维修包
+                '4': 200   # 高级维修组合
+            }[choice]
+        else:  # 头盔
+            max_points = {
+                '1': 30,   # 自制维修包
+                '2': 50,   # 标准维修包
+                '3': 75,   # 精密维修包
+                '4': 100   # 高级维修组合
+            }[choice]
+        
         # 输入维修点数
-        repair_points = validate_input("维修点数(1-200整数): ", 'int', 1, 200)
+        repair_points = validate_input(f"维修点数(1-{max_points}整数): ", 'int', 1, max_points)
         
         # 计算修复耐久
         repair_durability = repair_points * efficiency
