@@ -3,11 +3,6 @@ print("本程序由B站繁星攻略组制作")
 import sys
 from decimal import Decimal, ROUND_HALF_UP
 import openpyxl
-import logging
-
-# 配置日志
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 def get_decimal_input(prompt, min_val, max_val, decimal_places):
     """获取精确的小数输入"""
@@ -70,19 +65,19 @@ def load_weapons_data():
             caliber = ws.cell(row=row, column=3).value
             std_caliber = standardize_caliber(caliber) if caliber else ""
             
-            # 创建武器数据字典 - 修正部位倍率列索引
+            # 创建武器数据字典 - 修正列索引
             weapon_data = {
                 'category': current_category,
                 'name': str(weapon_name).strip(),
                 'caliber': std_caliber,
                 'raw_caliber': caliber,  # 保留原始口径用于显示
-                'fire_mode': ws.cell(row=row, column=4).value,
-                'trigger_delay': ws.cell(row=row, column=5).value or 0,
-                'fire_rate': ws.cell(row=row, column=6).value or 0,
-                'muzzle_velocity': ws.cell(row=row, column=7).value or 0,
-                'base_damage': ws.cell(row=row, column=8).value or 0,
-                'armor_damage': ws.cell(row=row, column=10).value or 0,
-                # 修正部位倍率列索引 (从M列开始，列索引13)
+                'fire_mode': ws.cell(row=row, column=5).value or 0,  # E列 (射击模式-程序用)
+                'trigger_delay': ws.cell(row=row, column=6).value or 0,  # F列 (扳机延迟)
+                'fire_rate': ws.cell(row=row, column=7).value or 0,  # G列 (射速)
+                'muzzle_velocity': ws.cell(row=row, column=8).value or 0,  # H列 (枪口初速)
+                'base_damage': ws.cell(row=row, column=9).value or 0,  # I列 (基础伤害)
+                'armor_damage': ws.cell(row=row, column=11).value or 0,  # K列 (护甲伤害)
+                # 部位倍率
                 'head_multiplier': ws.cell(row=row, column=13).value or 1.0,  # M列
                 'chest_multiplier': ws.cell(row=row, column=14).value or 1.0,  # N列
                 'abdomen_multiplier': ws.cell(row=row, column=15).value or 1.0,  # O列
@@ -94,7 +89,7 @@ def load_weapons_data():
                 'decay_factors': []
             }
             
-            # 读取衰减数据 (最多4组) - 修正列索引
+            # 读取衰减数据 (最多4组)
             decay_cols = [(20, 21), (22, 23), (24, 25), (26, 27)]  # T/U, V/W, X/Y, Z/AA列
             
             for dist_col, factor_col in decay_cols:
@@ -111,18 +106,14 @@ def load_weapons_data():
                     factor_val = float(factor)
                     weapon_data['decay_distances'].append(dist_val)
                     weapon_data['decay_factors'].append(factor_val)
-                except (ValueError, TypeError) as e:
-                    logger.warning(f"无法解析衰减数据: 武器 {weapon_data['name']}, 距离={dist}, 倍率={factor}, 错误: {e}")
+                except (ValueError, TypeError):
                     continue
             
             weapons.append(weapon_data)
-            logger.info(f"加载武器: {weapon_data['name']} ({weapon_data['caliber']})")
         
-        logger.info(f"成功加载 {len(weapons)} 件武器")
         return weapons
     
     except Exception as e:
-        logger.error(f"加载武器数据失败: {e}")
         print(f"\n错误: 无法加载武器数据 - {e}")
         return []
 
@@ -140,7 +131,6 @@ def load_bullets_data():
             caliber_cell = ws.cell(row=row, column=1).value
             if caliber_cell and str(caliber_cell).strip():
                 current_caliber = standardize_caliber(caliber_cell)
-                logger.info(f"加载子弹口径: {current_caliber}")
                 continue
                 
             bullet_name = ws.cell(row=row, column=2).value
@@ -174,13 +164,10 @@ def load_bullets_data():
                     bullet_data['armor_decay_factors'].append(0.0)
             
             bullets.append(bullet_data)
-            logger.info(f"加载子弹: {bullet_data['name']} ({bullet_data['caliber']})")
         
-        logger.info(f"成功加载 {len(bullets)} 种子弹")
         return bullets
     
     except Exception as e:
-        logger.error(f"加载子弹数据失败: {e}")
         print(f"\n错误: 无法加载子弹数据 - {e}")
         return []
 
@@ -204,7 +191,7 @@ def calculate_weapon_decay(distance, weapon):
 def main():
     # 初始化参数
     print("=== 初始化参数 ===")
-    helmet_durability = get_decimal_input("请输入头盔耐久（0.0-60.0）：", 0.0, 60.0, 1)
+    helmet_durability = get_decimal_input("请输入头盔耐久（0.0-75.0）：", 0.0, 75.0, 1)  # 更新头盔耐久范围
     armor_durability = get_decimal_input("请输入护甲耐久（0.0-150.0）：", 0.0, 150.0, 1)
     helmet_level = get_int_input("请输入头盔防护等级（0-6）：", 0, 6)
     armor_level = get_int_input("请输入护甲防护等级（0-6）：", 0, 6)
@@ -231,7 +218,7 @@ def main():
     categories = {}
     for weapon in weapons:
         if weapon['category'] not in categories:
-            categories[weapon['category']] = []  # 修复这里缺少的等号
+            categories[weapon['category']] = []
         categories[weapon['category']].append(weapon)
     
     # 显示武器类别
@@ -252,6 +239,10 @@ def main():
     weapon_choice = get_int_input("输入武器编号：", 1, len(category_weapons))
     selected_weapon = category_weapons[weapon_choice - 1]
     weapon_caliber = selected_weapon['caliber']
+    
+    # 霰弹枪警告
+    if selected_weapon['category'] == "霰弹枪":
+        print("警告：算法不支持多弹丸计算，此处仅可选独头弹")
     
     # 根据武器口径过滤子弹
     caliber_bullets = [b for b in bullets if b['caliber'] == weapon_caliber]
@@ -301,7 +292,7 @@ def main():
     base_damage_multiplier = Decimal(str(selected_bullet['base_damage_multiplier']))
     base_armor_multiplier = Decimal(str(selected_bullet['base_armor_multiplier']))
     
-    # 设置部位倍率 - 确保正确读取
+    # 设置部位倍率
     body_part_multipliers = {
         '头部': Decimal(str(selected_weapon['head_multiplier'])),
         '胸部': Decimal(str(selected_weapon['chest_multiplier'])),
@@ -321,16 +312,6 @@ def main():
     print(f"距离: {distance}米, 武器衰减倍率: {weapon_decay_multiplier}")
     print(f"穿透等级: {penetration_level}, 伤害倍率: {base_damage_multiplier}")
     print(f"护甲倍率: {base_armor_multiplier}, 护甲衰减倍率: {armor_decay_multiplier}")
-    
-    # 打印部位倍率用于验证
-    print("\n部位倍率:")
-    print(f"头部: {body_part_multipliers['头部']}")
-    print(f"胸部: {body_part_multipliers['胸部']}")
-    print(f"腹部: {body_part_multipliers['腹部']}")
-    print(f"大臂: {body_part_multipliers['大臂']}")
-    print(f"小臂: {body_part_multipliers['小臂']}")
-    print(f"大腿: {body_part_multipliers['大腿']}")
-    print(f"小腿: {body_part_multipliers['小腿']}")
     
     # 计算射击间隔
     if fire_rate:
