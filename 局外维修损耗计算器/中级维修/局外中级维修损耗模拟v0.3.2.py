@@ -6,6 +6,16 @@ import os
 from decimal import Decimal, getcontext, ROUND_FLOOR, ROUND_HALF_UP
 from openpyxl import load_workbook
 
+# 设置不可交易的装备列表
+NON_TRADABLE_EQUIPMENTS = [
+    "金刚防弹衣",
+    "特里克MAS2.0装甲",
+    "泰坦防弹装甲",
+    "DICH-9重型头盔",
+    "GT5指挥官头盔",
+    "H70夜视精英头盔"
+]
+
 # 设置decimal的精度环境
 getcontext().prec = 10
 getcontext().rounding = ROUND_HALF_UP
@@ -34,7 +44,7 @@ def validate_float_input(prompt, min_val, max_val, decimal_places, value_name, r
                     raise ValueError(f"不能高于当前上限({reference_value})")
             
             # 规范小数位数（不四舍五入，仅截断）
-            num = float(f"{num:.{decimal_places}f")
+            num = float(f"{num:.{decimal_places}f}")
             return num
         except ValueError as e:
             print(f"{value_name}输入错误：{e}，请重新输入")
@@ -267,6 +277,26 @@ def main():
             # 货币值取整（四舍五入到整数）
             repair_cost = repair_cost.to_integral_value(rounding=ROUND_HALF_UP)
 
+        # 计算磨损百分比
+        wear_percentage = (1 - float(final_upper) / float(initial_upper)) * 100
+        
+        # 市场出售判定
+        if selected_eq['name'] in NON_TRADABLE_EQUIPMENTS:
+            # 特殊装备直接标记为不可交易
+            market_status = "不可在市场进行交易"
+        else:
+            # 计算初始上限的85%和70%（向下取整）
+            threshold_85 = (initial_upper * Decimal('0.85')).to_integral_value(rounding=ROUND_FLOOR)
+            threshold_70 = (initial_upper * Decimal('0.70')).to_integral_value(rounding=ROUND_FLOOR)
+            
+            # 比较维修后上限与市场阈值
+            if final_upper >= threshold_85:
+                market_status = "略有磨损，可在市场出售"
+            elif final_upper >= threshold_70:
+                market_status = "久经沙场，可在市场出售"
+            else:
+                market_status = "破损不堪，不可在市场出售"
+
         print("\n=== 计算结果 ===")
         print(f"装备名称: {selected_eq['name']}")
         print(f"装备等级: {level_choice}级")
@@ -274,8 +304,9 @@ def main():
         print(f"当前上限(输入): {current_upper} → 处理值: {current_upper_processed}")
         print(f"剩余耐久: {remaining_durability_dec}")
         print(f"维修损耗: {repair_loss}")
-        print(f"维修后耐久上限: {final_upper}")
+        print(f"维修后耐久上限: {final_upper} (磨损: {wear_percentage:.1f}%)")
         print(f"维修花费: {repair_cost:,}")  # 千位分隔符格式化
+        print(f"市场出售状态: {market_status}")
 
     input("\n按回车结束程序")
 
