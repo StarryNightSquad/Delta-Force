@@ -19,11 +19,12 @@ def load_armor_data(file_path):
     wb = openpyxl.load_workbook(file_path)
     sheet = wb['护甲数据']
     
-    armors = {3: [], 4: [], 5: [], 6: []}
-    helmets = {3: [], 4: [], 5: [], 6: []}
+    # 支持1-6级装备
+    armors = {1: [], 2: [], 3: [], 4: [], 5: [], 6: []}
+    helmets = {1: [], 2: [], 3: [], 4: [], 5: [], 6: []}
     
     # 从第4行开始读取数据（跳过前3行标题）
-    for row in sheet.iter_rows(min_row=4, values_only=True):
+    for row_idx, row in enumerate(sheet.iter_rows(min_row=4, values_only=True), start=4):
         # 提取基本数据
         name = row[0]  # A列
         if not name:
@@ -40,24 +41,28 @@ def load_armor_data(file_path):
         efficiency_prec = row[14]  # O列 (精密)
         efficiency_adv = row[16]   # Q列 (高级)
         
-        # 只处理3-6级装备
-        if not isinstance(level, (int, float)) or level < 3:
+        # 处理所有1-6级装备
+        if not isinstance(level, (int, float)) or level < 1 or level > 6:
             continue
         
         level = int(level)
         
         # 处理维修效率值（有些单元格包含范围，取平均值）
         def parse_efficiency(value):
-            if isinstance(value, str) and '-' in value:
-                parts = value.split('-')
-                try:
-                    return (float(parts[0]) + float(parts[1])) / 2
-                except (ValueError, TypeError):
-                    return 0
-            try:
-                return float(value) if value is not None else 0
-            except (TypeError, ValueError):
+            if value is None:
                 return 0
+            if isinstance(value, str):
+                if '-' in value:
+                    parts = value.split('-')
+                    try:
+                        return (float(parts[0]) + float(parts[1])) / 2
+                    except (ValueError, TypeError):
+                        return 0
+                try:
+                    return float(value)
+                except (TypeError, ValueError):
+                    return 0
+            return float(value)
         
         # 创建装备数据字典
         equipment = {
@@ -76,11 +81,9 @@ def load_armor_data(file_path):
         
         # 分类到护甲或头盔
         if armor_type in ['半甲', '全甲', '重甲']:
-            if level in armors:
-                armors[level].append(equipment)
+            armors[level].append(equipment)
         elif armor_type in ['无', '有']:
-            if level in helmets:
-                helmets[level].append(equipment)
+            helmets[level].append(equipment)
     
     return armors, helmets
 
@@ -152,8 +155,6 @@ def validate_input(prompt, input_type, min_val=None, max_val=None, decimal_place
             print(f"输入错误: {e}，请重新输入")
 
 def main():
-    print("===== 装备维修计算器 =====")
-    
     # 加载护甲数据
     file_path = "S5护甲数据.xlsx"
     if not os.path.exists(file_path):
@@ -162,53 +163,78 @@ def main():
     
     try:
         armors, helmets = load_armor_data(file_path)
-        print("护甲数据加载成功!")
     except Exception as e:
         print(f"加载护甲数据失败: {e}")
         return
+    
+    # 显示装备统计信息
+    print("成功加载装备数据:")
+    
+    # 护甲统计
+    armor_counts = []
+    for level in range(1, 7):
+        count = len(armors[level])
+        armor_counts.append(f"{level}级({count})")
+    print(f"护甲: {' '.join(armor_counts)}")
+    
+    # 头盔统计
+    helmet_counts = []
+    for level in range(1, 7):
+        count = len(helmets[level])
+        helmet_counts.append(f"{level}级({count})")
+    print(f"头盔: {' '.join(helmet_counts)}")
+    
+    print("\n=== 装备维修计算器 ===")
     
     # 选择装备类型（调整顺序：1头盔 2护甲）
     print("\n请选择装备类型:")
     print("1. 头盔")
     print("2. 护甲")
-    equip_type = input("请输入装备类型编号(1-2): ")
+    equip_type = input("请输入选择(1-2): ")
     
     if equip_type not in ['1', '2']:
         print("无效的选择")
         return
     
-    # 选择装备等级
+    # 选择装备等级（1-6级）
     print("\n请选择装备等级:")
-    print("3. 3级")
-    print("4. 4级")
-    print("5. 5级")
-    print("6. 6级")
-    equip_level = input("请输入装备等级编号(3-6): ")
     
-    if equip_level not in ['3', '4', '5', '6']:
+    # 根据装备类型获取统计信息
+    if equip_type == '1':  # 头盔
+        equipment_dict = helmets
+        equip_type_name = "头盔"
+    else:  # 护甲
+        equipment_dict = armors
+        equip_type_name = "护甲"
+    
+    # 显示每个等级可用的装备数量
+    for level in range(1, 7):
+        count = len(equipment_dict[level])
+        print(f"{level}. {level}级装备 ({count}件可用)")
+    
+    equip_level = input(f"请输入选择(1-6): ")
+    
+    if equip_level not in ['1', '2', '3', '4', '5', '6']:
         print("无效的选择")
         return
     
     equip_level = int(equip_level)
     
-    # 选择具体装备（根据装备类型选择对应列表）
-    if equip_type == '1':  # 头盔
-        equipment_list = helmets[equip_level]
-        equip_type_name = "头盔"
-    else:  # 护甲
-        equipment_list = armors[equip_level]
-        equip_type_name = "护甲"
+    # 获取该等级装备列表
+    equipment_list = equipment_dict[equip_level]
     
     if not equipment_list:
         print(f"没有找到{equip_level}级的{equip_type_name}")
         return
     
-    print(f"\n请选择具体的{equip_level}级{equip_type_name}:")
+    print(f"\n请选择{equip_level}级{equip_type_name}:")
+    
+    # 显示装备列表，包含初始上限和维修损耗
     for i, equip in enumerate(equipment_list, 1):
-        print(f"{i}. {equip['name']}")
+        print(f"{i}. {equip['name']} (初始上限: {equip['max_durability']}, 维修损耗: {equip['repair_loss']})")
     
     try:
-        choice = int(input(f"请输入装备编号(1-{len(equipment_list)}): "))
+        choice = int(input(f"请输入选择(1-{len(equipment_list)}): "))
         if choice < 1 or choice > len(equipment_list):
             raise ValueError
     except ValueError:
@@ -217,10 +243,11 @@ def main():
     
     selected_equip = equipment_list[choice - 1]
     
-    # 显示选择的装备信息
-    print(f"\n已选择: {selected_equip['name']}")
-    print(f"装备等级: {selected_equip['level']}级")
+    # 显示装备详细信息
+    print("\n=== 装备详细信息 ===")
+    print(f"装备名称: {selected_equip['name']}")
     print(f"装备类型: {selected_equip['type']}")
+    print(f"防护等级: {selected_equip['level']}级")
     print(f"初始上限: {selected_equip['max_durability']}")
     print(f"维修损耗: {selected_equip['repair_loss']}")
     print("维修效率:")
