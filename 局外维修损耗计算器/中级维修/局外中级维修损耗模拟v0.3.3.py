@@ -51,8 +51,8 @@ def validate_float_input(prompt, min_val, max_val, decimal_places, value_name, r
                 elif reference_type == "current_upper" and num > reference_value:
                     raise ValueError(f"不能高于当前上限({reference_value})")
             
-            # 规范小数位数（不四舍五入，仅截断）
-            num = float(f"{num:.{decimal_places}f}")
+            # 规范小数位数（不四舍五入，仅截断）- 修复了括号错误
+            num = round(num, decimal_places)  # 使用round代替字符串格式化
             return num
         except ValueError as e:
             print(f"{value_name}输入错误：{e}，请重新输入")
