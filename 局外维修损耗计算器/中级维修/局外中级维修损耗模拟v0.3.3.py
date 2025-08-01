@@ -16,6 +16,14 @@ NON_TRADABLE_EQUIPMENTS = [
     "H70夜视精英头盔"
 ]
 
+# 维修效率类型名称映射
+REPAIR_KIT_NAMES = {
+    1: "自制维修包",
+    2: "标准维修包",
+    3: "精密维修包",
+    4: "高级维修组合"
+}
+
 # 设置decimal的精度环境
 getcontext().prec = 10
 getcontext().rounding = ROUND_HALF_UP
@@ -72,8 +80,9 @@ def load_equipment_data(file_path):
         wb = load_workbook(file_path)
         sheet = wb.active
         
-        armor_data = {3: [], 4: [], 5: [], 6: []}  # 护甲数据按等级分组
-        helmet_data = {3: [], 4: [], 5: [], 6: []}  # 头盔数据按等级分组
+        # 初始化1-6级的护甲和头盔数据字典
+        armor_data = {i: [] for i in range(1, 7)}
+        helmet_data = {i: [] for i in range(1, 7)}
         
         # 从第4行开始读取数据（跳过前3行标题）
         for row in range(4, sheet.max_row + 1):
@@ -84,7 +93,7 @@ def load_equipment_data(file_path):
                 
             # 读取防护等级
             level = sheet.cell(row=row, column=2).value
-            if level is None or level not in [3, 4, 5, 6]:
+            if level is None or level not in range(1, 7):  # 支持1-6级
                 continue
                 
             # 读取装备类型
@@ -141,7 +150,16 @@ def main():
     try:
         file_path = "S5护甲数据.xlsx"
         armor_data, helmet_data = load_equipment_data(file_path)
-        print(f"成功加载装备数据，共找到 {sum(len(v) for v in armor_data.values())} 件护甲和 {sum(len(v) for v in helmet_data.values())} 件头盔")
+        
+        # 统计各等级装备数量
+        armor_counts = {level: len(items) for level, items in armor_data.items()}
+        helmet_counts = {level: len(items) for level, items in helmet_data.items()}
+        
+        print(f"成功加载装备数据:")
+        print(f"护甲: 1级({armor_counts[1]}) 2级({armor_counts[2]}) 3级({armor_counts[3]}) "
+              f"4级({armor_counts[4]}) 5级({armor_counts[5]}) 6级({armor_counts[6]})")
+        print(f"头盔: 1级({helmet_counts[1]}) 2级({helmet_counts[2]}) 3级({helmet_counts[3]}) "
+              f"4级({helmet_counts[4]}) 5级({helmet_counts[5]}) 6级({helmet_counts[6]})")
     except Exception as e:
         print(f"加载装备数据失败: {e}")
         input("\n按回车结束程序")
@@ -158,13 +176,13 @@ def main():
     item_type = "护甲" if item_choice == 1 else "头盔"
     data_source = armor_data if item_choice == 1 else helmet_data
     
-    # 选择装备等级
+    # 选择装备等级 (1-6级)
     print("\n请选择装备等级:")
-    print("3. 3级装备")
-    print("4. 4级装备")
-    print("5. 5级装备")
-    print("6. 6级装备")
-    level_choice = validate_int_input("请输入选择(3-6): ", 3, 6, "装备等级")
+    for level in range(1, 7):
+        count = len(data_source.get(level, []))
+        print(f"{level}. {level}级装备 ({count}件可用)")
+    
+    level_choice = validate_int_input("请输入选择(1-6): ", 1, 6, "装备等级")
     
     # 获取该等级下的装备列表
     equipment_list = data_source.get(level_choice, [])
@@ -186,15 +204,17 @@ def main():
     print("\n=== 装备详细信息 ===")
     print(f"装备名称: {selected_eq['name']}")
     print(f"装备类型: {selected_eq['type']}")
+    print(f"防护等级: {selected_eq['level']}级")
     print(f"初始上限: {selected_eq['initial_upper']}")
     print(f"维修损耗: {selected_eq['repair_loss']}")
     print(f"维修单价: {selected_eq['repair_price']}")
     
-    # 显示维修效率信息
+    # 显示维修效率信息（使用新的名称）
     if selected_eq['repair_efficiency']:
         print("\n维修效率信息:")
         for idx, eff in enumerate(selected_eq['repair_efficiency'], 1):
-            print(f"维修效率{idx}: {eff}")
+            kit_name = REPAIR_KIT_NAMES.get(idx, f"维修效率{idx}")
+            print(f"{idx}. {kit_name}: {eff}")
     
     # 输入当前上限和剩余耐久（带额外验证）
     print("\n请提供装备当前状态:")
@@ -299,7 +319,7 @@ def main():
 
         print("\n=== 计算结果 ===")
         print(f"装备名称: {selected_eq['name']}")
-        print(f"装备等级: {level_choice}级")
+        print(f"防护等级: {selected_eq['level']}级")
         print(f"初始上限: {initial_upper}")
         print(f"当前上限(输入): {current_upper} → 处理值: {current_upper_processed}")
         print(f"剩余耐久: {remaining_durability_dec}")
