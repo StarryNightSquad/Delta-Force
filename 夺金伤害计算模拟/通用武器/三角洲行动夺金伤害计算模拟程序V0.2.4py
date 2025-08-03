@@ -65,7 +65,7 @@ def load_weapons_data():
             caliber = ws.cell(row=row, column=3).value
             std_caliber = standardize_caliber(caliber) if caliber else ""
             
-            # 创建武器数据字典 - 修正列索引
+            # 创建武器数据字典
             weapon_data = {
                 'category': current_category,
                 'name': str(weapon_name).strip(),
@@ -131,7 +131,6 @@ def load_bullets_data():
             caliber_cell = ws.cell(row=row, column=1).value
             if caliber_cell and str(caliber_cell).strip():
                 current_caliber = standardize_caliber(caliber_cell)
-                continue
                 
             bullet_name = ws.cell(row=row, column=2).value
             if not bullet_name or not str(bullet_name).strip():
@@ -191,7 +190,7 @@ def calculate_weapon_decay(distance, weapon):
 def main():
     # 初始化参数
     print("=== 初始化参数 ===")
-    helmet_durability = get_decimal_input("请输入头盔耐久（0.0-75.0）：", 0.0, 75.0, 1)  # 更新头盔耐久范围
+    helmet_durability = get_decimal_input("请输入头盔耐久（0.0-75.0）：", 0.0, 75.0, 1)
     armor_durability = get_decimal_input("请输入护甲耐久（0.0-150.0）：", 0.0, 150.0, 1)
     helmet_level = get_int_input("请输入头盔防护等级（0-6）：", 0, 6)
     armor_level = get_int_input("请输入护甲防护等级（0-6）：", 0, 6)
@@ -242,7 +241,7 @@ def main():
     
     # 霰弹枪警告
     if selected_weapon['category'] == "霰弹枪":
-        print("警告：算法不支持多弹丸计算，此处仅可选独头弹")
+        print("警告：霰弹枪伤害计算可能不准确（多弹丸特性）")
     
     # 根据武器口径过滤子弹
     caliber_bullets = [b for b in bullets if b['caliber'] == weapon_caliber]
@@ -409,6 +408,9 @@ def main():
         protector_destroyed = False
         armor_damage_dealt = Decimal('0.0')
         
+        # 特殊处理：.338 Lap Mag弹药始终完全穿透护甲
+        is_338_lap_mag = selected_bullet['caliber'] == '338lapmag'
+        
         if is_protected:
             # 计算剩余耐久
             remaining_durability = current_protector_durability - armor_damage_value
@@ -433,12 +435,19 @@ def main():
             
             weapon_damage_dec = Decimal(str(weapon_damage))
             
-            if current_protector_durability >= armor_damage_value:
-                final_damage = weapon_damage_dec * base_damage_multiplier * part_multiplier * penetration_multiplier * weapon_decay_multiplier
+            # 特殊处理：.338弹药完全穿透护甲
+            if is_338_lap_mag:
+                # .338弹药完全穿透护甲，直接造成全额伤害
+                final_damage = weapon_damage_dec * base_damage_multiplier * part_multiplier * weapon_decay_multiplier
+                print("\n[.338 Lap Mag特殊效果] 完全穿透护甲！")
             else:
-                part1 = ratio * weapon_damage_dec * base_damage_multiplier * part_multiplier * penetration_multiplier * weapon_decay_multiplier
-                part2 = (Decimal('1') - ratio) * weapon_damage_dec * base_damage_multiplier * part_multiplier * weapon_decay_multiplier
-                final_damage = part1 + part2
+                # 正常护甲穿透计算
+                if current_protector_durability >= armor_damage_value:
+                    final_damage = weapon_damage_dec * base_damage_multiplier * part_multiplier * penetration_multiplier * weapon_decay_multiplier
+                else:
+                    part1 = ratio * weapon_damage_dec * base_damage_multiplier * part_multiplier * penetration_multiplier * weapon_decay_multiplier
+                    part2 = (Decimal('1') - ratio) * weapon_damage_dec * base_damage_multiplier * part_multiplier * weapon_decay_multiplier
+                    final_damage = part1 + part2
             
             # 四舍五入伤害值
             final_damage = final_damage.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
@@ -460,14 +469,14 @@ def main():
         
         # 输出结果
         print("\n=== 计算结果 ===")
-        if is_protected:
+        if is_protected and not is_338_lap_mag:  # .338弹药不显示护甲阻挡信息
             if protector_type == 'helmet':
                 print("头盔被击碎！" if protector_destroyed else "头盔未被击碎。")
                 print(f"头盔损失耐久：{armor_damage_dealt.quantize(Decimal('0.1'), rounding=ROUND_HALF_UP)}")
             else:
                 print("护甲被击碎！" if protector_destroyed else "护甲未被击碎。")
                 print(f"护甲损失耐久：{armor_damage_dealt.quantize(Decimal('0.1'), rounding=ROUND_HALF_UP)}")
-        elif hit_part == '头部' and helmet_level > 0:
+        elif hit_part == '头部' and helmet_level > 0 and not is_338_lap_mag:
             print("（未受头盔保护）")
         
         print(f"受到伤害：{final_damage}")
