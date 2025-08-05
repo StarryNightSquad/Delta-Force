@@ -1,3 +1,6 @@
+print("本程序由B站繁星攻略组制作")
+print("卡战备计算程序数据量较大，加载慢与计算慢很正常。耐心等待")
+
 import openpyxl
 import time
 import heapq
