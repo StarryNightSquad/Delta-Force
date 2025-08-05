@@ -1,3 +1,5 @@
+print("本程序由B站繁星攻略组制作，感谢B站用户Dec128与乂丶z提供的数据支持")
+
 import math
 import re
 import os
@@ -13,14 +15,6 @@ NON_TRADABLE_EQUIPMENTS = [
     "GT5指挥官头盔",
     "H70夜视精英头盔"
 ]
-
-# 维修效率类型名称映射
-REPAIR_KIT_NAMES = {
-    1: "自制维修包",
-    2: "标准维修包",
-    3: "精密维修包",
-    4: "高级维修组合"
-}
 
 # 设置decimal的精度环境
 getcontext().prec = 10
@@ -113,14 +107,7 @@ def load_equipment_data(file_path):
             repair_price = sheet.cell(row=row, column=10).value
             if repair_price is None:
                 continue
-                
-            # 读取维修效率数据（K、M、O、Q列）
-            repair_efficiency = []
-            for col in [11, 13, 15, 17]:
-                value = sheet.cell(row=row, column=col).value
-                if value and isinstance(value, (int, float)):
-                    repair_efficiency.append(value)
-            
+           
             # 创建装备数据字典
             equipment = {
                 'name': name.strip(),
@@ -129,7 +116,6 @@ def load_equipment_data(file_path):
                 'initial_upper': Decimal(str(initial_upper)),  # 使用Decimal
                 'repair_loss': Decimal(str(repair_loss)),      # 使用Decimal
                 'repair_price': Decimal(str(repair_price)),    # 使用Decimal
-                'repair_efficiency': repair_efficiency
             }
             
             # 根据类型分类存储
@@ -220,13 +206,6 @@ def main():
     print(f"初始上限: {selected_eq['initial_upper']}")
     print(f"维修损耗: {selected_eq['repair_loss']} → 调整后: {adjusted_repair_loss} ({repair_type})")
     print(f"维修单价: {selected_eq['repair_price']} → 调整后: {adjusted_repair_price} ({repair_type})")
-    
-    # 显示维修效率信息（使用新的名称）
-    if selected_eq['repair_efficiency']:
-        print("\n维修效率信息:")
-        for idx, eff in enumerate(selected_eq['repair_efficiency'], 1):
-            kit_name = REPAIR_KIT_NAMES.get(idx, f"维修效率{idx}")
-            print(f"{idx}. {kit_name}: {eff}")
     
     # 输入当前上限和剩余耐久（带额外验证）
     print("\n请提供装备当前状态:")
