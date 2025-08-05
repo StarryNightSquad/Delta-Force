@@ -99,10 +99,10 @@ def load_melee_weapons_data():
 def main():
     # 初始化参数
     print("=== 初始化参数 ===")
-    helmet_durability = get_decimal_input("请输入头盔耐久（0.0-75.0）：", 0.0, 75.0, 1)
-    armor_durability = get_decimal_input("请输入护甲耐久（0.0-150.0）：", 0.0, 150.0, 1)
     helmet_level = get_int_input("请输入头盔防护等级（0-6）：", 0, 6)
+    helmet_durability = get_decimal_input("请输入头盔耐久（0.0-75.0）：", 0.0, 75.0, 1)
     armor_level = get_int_input("请输入护甲防护等级（0-6）：", 0, 6)
+    armor_durability = get_decimal_input("请输入护甲耐久（0.0-150.0）：", 0.0, 150.0, 1)
     armor_type = get_int_input("\n请输入护甲类型（1-半甲，2-全甲，3-重甲）：", 1, 3)
     
     # 加载近战武器数据
@@ -148,7 +148,7 @@ def main():
     while True:
         # 输入命中部位
         while True:
-            hit_part = input(f"\n第{sequence_index+1}击 - 请输入命中部位（或输入'未命中'/exit）：").strip()
+            hit_part = input(f"\n第{sequence_index+1}击 - 输入命中部位（头部/胸部/腹部/下腹部/大臂/小臂/大腿/小腿/未命中）：").strip()
             if hit_part.lower() == 'exit':
                 return
             if hit_part in valid_parts:
