@@ -1,3 +1,5 @@
+print("本程序由B站繁星攻略组制作")
+
 from decimal import Decimal, ROUND_HALF_UP
 
 # 使用Decimal进行高精度计算
@@ -137,10 +139,10 @@ def main():
     
     # 玩家初始状态
     health = Decimal('100.0')
-    helmet_durability = get_decimal_input("输入头盔耐久 (0.0-60.0): ", Decimal('0.0'), Decimal('60.0'))
     helmet_level = get_int_input("输入头盔防护等级 (0-6, 0表示无头盔): ", 0, 6)
-    armor_durability = get_decimal_input("输入护甲耐久 (0.0-150.0): ", Decimal('0.0'), Decimal('150.0'))
+    helmet_durability = get_decimal_input("输入头盔耐久 (0.0-75.0): ", Decimal('0.0'), Decimal('75.0'))
     armor_level = get_int_input("输入护甲防护等级 (0-6, 0表示无护甲): ", 0, 6)
+    armor_durability = get_decimal_input("输入护甲耐久 (0.0-150.0): ", Decimal('0.0'), Decimal('150.0'))
     distance = get_decimal_input("输入目标距离 (0.0-200.0): ", Decimal('0.0'), Decimal('200.0'))
     armor_type = get_int_input("输入护甲类型 (1-半甲, 2-全甲, 3-重甲): ", 1, 3)
     arrow_type = get_int_input("输入箭矢类型 (1-玻纤柳叶, 2-碳纤维刺骨, 3-碳纤维穿甲): ", 1, 3)
