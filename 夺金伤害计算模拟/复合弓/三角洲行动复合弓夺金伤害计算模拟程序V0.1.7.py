@@ -1,4 +1,5 @@
 print("本程序由B站繁星攻略组制作")
+print("注：受限于数据精度问题，本程序给出的所有时间相关计算仅供参考，与实际存在一定误差")
 
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -10,9 +11,6 @@ def round_decimal(value, decimals):
         d = Decimal(str(value))
     rounded = d.quantize(Decimal('1.' + '0'*decimals), rounding=ROUND_HALF_UP)
     return rounded
-
-print("本程序由B站繁星攻略组制作")
-print("注：受限于数据精度问题，本程序给出的所有时间相关计算仅供参考，与实际存在一定误差")
 
 # 部位倍率字典（基础值）
 base_location_multipliers = {
@@ -208,7 +206,7 @@ def main():
         
         shot_type_count[shot_type] += 1
         
-        location = input("输入命中部位 (头部/胸部/腹部/下腹部/大臂/小臂/大腿/小腿/未命中): ")
+        location = input("输入命中部位 (头部/胸部/腹部/下腹部/大臂/小臂/大腿/小腿/未命中)： ")
         
         # 处理未命中
         if location == "未命中":
