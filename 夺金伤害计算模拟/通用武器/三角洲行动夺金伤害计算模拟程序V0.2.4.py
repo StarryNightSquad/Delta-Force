@@ -344,7 +344,7 @@ def main():
     while True:
         # 输入命中部位
         while True:
-            hit_part = input("\n请输入命中部位（或输入'未命中'/exit）：").strip()
+            hit_part = input("\n输入命中部位 (头部/胸部/腹部/下腹部/大臂/小臂/大腿/小腿/未命中)：").strip()
             if hit_part.lower() == 'exit':
                 return
             if hit_part in valid_parts:
