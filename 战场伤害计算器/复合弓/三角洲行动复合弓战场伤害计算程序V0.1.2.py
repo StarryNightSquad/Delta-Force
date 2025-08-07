@@ -24,6 +24,10 @@ TRIGGER_DELAY = {
     "速射": Decimal('80'),
     "满蓄": Decimal('540')
 }
+SHOOT_MODE_FACTOR = {
+    "速射": Decimal('0.7'),
+    "满蓄": Decimal('1.0')
+}
 
 def get_attenuation(distance):
     """根据距离计算衰减倍率"""
@@ -49,9 +53,9 @@ def validate_distance(value):
     except:
         return False
 
-def calculate_damage(attenuation, body_multiplier):
+def calculate_damage(attenuation, body_multiplier, shoot_mode_factor):
     """计算单次伤害值"""
-    damage = BASE_DAMAGE * attenuation * body_multiplier
+    damage = BASE_DAMAGE * attenuation * body_multiplier * shoot_mode_factor
     return damage.quantize(Decimal('0.00'))
 
 def calculate_shots_needed(damage):
@@ -68,7 +72,7 @@ def calculate_total_time(attack_count, trigger_delay):
             SHOOT_INTERVAL * (attack_count - 1))
 
 def main():
-    print("战场武器伤害计算器")
+    print("武器战斗模拟计算器")
     print("=" * 50)
     
     # 获取有效距离输入
@@ -89,6 +93,9 @@ def main():
     # 计算衰减倍率
     attenuation = get_attenuation(distance)
     
+    # 获取射击模式因子
+    shoot_mode_factor = SHOOT_MODE_FACTOR[shoot_mode]
+    
     # 计算并显示各部位结果
     body_parts = ["头部", "胸部", "腹部", "大臂", "小臂", "大腿", "小腿"]
     
@@ -98,7 +105,7 @@ def main():
     for part in body_parts:
         # 计算伤害
         multiplier = BODY_PARTS[part]
-        damage = calculate_damage(attenuation, multiplier)
+        damage = calculate_damage(attenuation, multiplier, shoot_mode_factor)
         
         # 计算攻击次数
         attacks = calculate_shots_needed(float(damage))
