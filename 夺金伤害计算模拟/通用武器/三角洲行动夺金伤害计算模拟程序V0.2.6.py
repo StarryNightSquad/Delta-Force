@@ -272,7 +272,14 @@ def select_protection(items, item_type):
     for i, level in enumerate(sorted_levels, 1):
         print(f"{i}. {level}级{item_type}")
     
-    level_choice = get_int_input(f"请选择{item_type}等级 (1-{len(sorted_levels)}): ", 1, len(sorted_levels))
+    # 获取用户选择，包括0（无）选项
+    max_choice = len(sorted_levels)
+    level_choice = get_int_input(f"请选择{item_type}等级 (0-{max_choice}): ", 0, max_choice)
+    
+    # 处理"无"选项
+    if level_choice == 0:
+        return None, Decimal('0.0')
+    
     selected_level = sorted_levels[level_choice - 1]
     
     # 显示该等级下的装备
@@ -308,20 +315,27 @@ def main():
     
     if helmets:
         selected_helmet, helmet_durability = select_protection(helmets, "头盔")
-        helmet_level = selected_helmet['level']
-        print(f"已选择头盔: {selected_helmet['name']} (等级{helmet_level})")
+        if selected_helmet:
+            helmet_level = selected_helmet['level']
+            print(f"已选择头盔: {selected_helmet['name']} (等级{helmet_level})")
+        else:
+            print("已选择：无头盔")
     else:
         print("未找到头盔数据，将使用无头盔设置")
     
     # 选择护甲
     armor_level = 0
     armor_durability = Decimal('0.0')
+    armor_type_value = 0
     
     if armors:
         selected_armor, armor_durability = select_protection(armors, "护甲")
-        armor_level = selected_armor['level']
-        armor_type = selected_armor['armor_type']
-        print(f"已选择护甲: {selected_armor['name']} (等级{armor_level}, 类型{armor_type})")
+        if selected_armor:
+            armor_level = selected_armor['level']
+            armor_type_value = selected_armor['armor_type']
+            print(f"已选择护甲: {selected_armor['name']} (等级{armor_level}, 类型{armor_type_value})")
+        else:
+            print("已选择：无护甲")
     else:
         print("未找到护甲数据，将使用无护甲设置")
     
@@ -330,7 +344,9 @@ def main():
         1: ['胸部', '腹部'],
         2: ['胸部', '腹部', '下腹部'],
         3: ['胸部', '腹部', '下腹部', '大臂']
-    }.get(armor_type, [])
+    }.get(armor_type_value, [])  # 如果没有护甲，返回空列表
+    
+    # 后续代码保持不变...
     
     # 加载武器和子弹数据
     print("正在加载武器数据...")
