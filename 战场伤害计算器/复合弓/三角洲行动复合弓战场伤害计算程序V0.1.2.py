@@ -72,7 +72,7 @@ def calculate_total_time(attack_count, trigger_delay):
             SHOOT_INTERVAL * (attack_count - 1))
 
 def main():
-    print("武器战斗模拟计算器")
+    print("复合弓模拟计算器")
     print("=" * 50)
     
     # 获取有效距离输入
