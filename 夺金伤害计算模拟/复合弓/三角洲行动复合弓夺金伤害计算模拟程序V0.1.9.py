@@ -242,7 +242,9 @@ def select_protection(items, item_type):
 def main():
     print("===== 复合弓伤害模拟器 =====")
     
-    # === 修改后的护甲和头盔选择部分 ===
+    # 玩家初始状态
+    health = Decimal('100.0')
+    
     # 加载护甲数据
     print("正在加载护甲数据...")
     armors, helmets = load_armor_data()
@@ -465,7 +467,7 @@ def main():
             armor_damage_taken = round_decimal(armor_damage_taken, 1)
             print(f"{gear_type}损失耐久: {float(armor_damage_taken):.1f}")
             if gear_durability > Decimal('0') and armor_damage_taken >= gear_durability:
-                print(f"⚔️ {gear_type}已击碎!")
+                print(f"{gear_type}已击碎!")
         
         if health > Decimal('0'):
             health_rounded = round_decimal(health, 1)
@@ -473,7 +475,7 @@ def main():
             print(f"头盔耐久: {float(helmet_durability):.1f}")
             print(f"护甲耐久: {float(armor_durability):.1f}")
         else:
-            print("💀 你死了!")
+            print("你死了!")
             print(f"最终头盔耐久: {float(helmet_durability):.1f}")
             print(f"最终护甲耐久: {float(armor_durability):.1f}")
             input("按回车键结束模拟计算")
@@ -498,6 +500,4 @@ def main():
             print(f"{loc}: {count}次")
 
 if __name__ == "__main__":
-    # 玩家初始状态
-    health = Decimal('100.0')
     main()
