@@ -2,6 +2,7 @@ print("本程序由B站繁星攻略组制作")
 print("注：受限于数据精度问题，本程序给出的所有时间相关计算仅供参考，与实际存在一定误差")
 
 from decimal import Decimal, ROUND_HALF_UP
+import openpyxl  # 添加Excel处理库
 
 # 使用Decimal进行高精度计算
 def round_decimal(value, decimals):
@@ -67,13 +68,6 @@ arrows = {
     }
 }
 
-# 护甲类型保护部位
-armor_protection = {
-    1: ["胸部", "腹部"],         # 半甲
-    2: ["胸部", "腹部", "下腹部"], # 全甲
-    3: ["胸部", "腹部", "下腹部", "大臂"]  # 重甲
-}
-
 def get_decimal_input(prompt, min_val, max_val, decimals=1):
     while True:
         try:
@@ -132,20 +126,169 @@ def calculate_penetration_rate(penetration, armor_level, is_head=False):
         # 穿透等级大于等于防护等级+2
         return Decimal('1.0')
 
-def main():
-    print("===== 弓箭伤害模拟器 (高精度计算版) =====")
+# === 新增的护甲数据加载和选择函数 ===
+def load_armor_data():
+    """加载护甲和头盔数据"""
+    try:
+        wb = openpyxl.load_workbook('S5护甲数据.xlsx', data_only=True)
+        ws = wb.active
+        
+        armors = []
+        helmets = []
+        current_section = None
+        
+        for row in range(1, ws.max_row + 1):
+            cell_value = ws.cell(row=row, column=1).value
+            
+            # 检测章节开始
+            if cell_value == "护甲":
+                current_section = "armor"
+                continue
+            elif cell_value == "头盔":
+                current_section = "helmet"
+                continue
+                
+            if not cell_value or not str(cell_value).strip():
+                continue
+                
+            # 读取数据
+            name = str(cell_value).strip()
+            level = ws.cell(row=row, column=2).value
+            armor_type = ws.cell(row=row, column=3).value
+            max_durability = ws.cell(row=row, column=7).value  # G列: 初始上限
+            
+            if level is None or max_durability is None:
+                continue
+                
+            try:
+                level = int(level)
+                max_durability = Decimal(str(max_durability))
+            except (ValueError, TypeError):
+                continue
+                
+            item_data = {
+                'name': name,
+                'level': level,
+                'max_durability': max_durability
+            }
+            
+            if current_section == "armor":
+                # 护甲类型映射: 半甲->1, 全甲->2, 重甲->3
+                if armor_type == '半甲':
+                    item_data['armor_type'] = 1
+                elif armor_type == '全甲':
+                    item_data['armor_type'] = 2
+                elif armor_type == '重甲':
+                    item_data['armor_type'] = 3
+                else:
+                    continue  # 跳过无效类型
+                armors.append(item_data)
+                
+            elif current_section == "helmet":
+                helmets.append(item_data)
+                
+        return armors, helmets
     
-    # 玩家初始状态
-    health = Decimal('100.0')
-    helmet_level = get_int_input("输入头盔防护等级 (0-6, 0表示无头盔): ", 0, 6)
-    helmet_durability = get_decimal_input("输入头盔耐久 (0.0-75.0): ", Decimal('0.0'), Decimal('75.0'))
-    armor_level = get_int_input("输入护甲防护等级 (0-6, 0表示无护甲): ", 0, 6)
-    armor_durability = get_decimal_input("输入护甲耐久 (0.0-150.0): ", Decimal('0.0'), Decimal('150.0'))
+    except Exception as e:
+        print(f"\n错误: 无法加载护甲数据 - {e}")
+        return [], []
+
+def select_protection(items, item_type):
+    """选择防护装备并输入耐久"""
+    print(f"\n=== 选择{item_type} ===")
+    print("0. 无")
+    
+    # 按等级分组
+    levels = {}
+    for item in items:
+        level = item['level']
+        if level not in levels:
+            levels[level] = []
+        levels[level].append(item)
+    
+    # 显示等级选项
+    sorted_levels = sorted(levels.keys())
+    for i, level in enumerate(sorted_levels, 1):
+        print(f"{i}. {level}级{item_type}")
+    
+    # 获取用户选择，包括0（无）选项
+    max_choice = len(sorted_levels)
+    level_choice = get_int_input(f"请选择{item_type}等级 (0-{max_choice}): ", 0, max_choice)
+    
+    # 处理"无"选项
+    if level_choice == 0:
+        return None, Decimal('0.0')
+    
+    selected_level = sorted_levels[level_choice - 1]
+    
+    # 显示该等级下的装备
+    level_items = levels[selected_level]
+    print(f"\n{selected_level}级{item_type}列表:")
+    for i, item in enumerate(level_items, 1):
+        print(f"{i}. {item['name']} (最大耐久: {item['max_durability']})")
+    
+    item_choice = get_int_input(f"请选择{item_type}: ", 1, len(level_items))
+    selected_item = level_items[item_choice - 1]
+    
+    # 输入当前耐久
+    max_durability = float(selected_item['max_durability'])
+    durability = get_decimal_input(
+        f"请输入当前{item_type}耐久 (0.0-{max_durability}): ",
+        0.0, max_durability, 1
+    )
+    
+    return selected_item, durability
+
+def main():
+    print("===== 复合弓伤害模拟器 =====")
+    
+    # === 修改后的护甲和头盔选择部分 ===
+    # 加载护甲数据
+    print("正在加载护甲数据...")
+    armors, helmets = load_armor_data()
+    
+    # 初始化护甲和头盔信息
+    helmet_level = 0
+    helmet_durability = Decimal('0.0')
+    armor_level = 0
+    armor_durability = Decimal('0.0')
+    armor_type = 0
+    
+    # 选择头盔
+    if helmets:
+        selected_helmet, helmet_durability = select_protection(helmets, "头盔")
+        if selected_helmet:
+            helmet_level = selected_helmet['level']
+            print(f"已选择头盔: {selected_helmet['name']} (等级{helmet_level})")
+        else:
+            print("已选择：无头盔")
+    else:
+        print("未找到头盔数据，将使用无头盔设置")
+    
+    # 选择护甲
+    if armors:
+        selected_armor, armor_durability = select_protection(armors, "护甲")
+        if selected_armor:
+            armor_level = selected_armor['level']
+            armor_type = selected_armor['armor_type']
+            print(f"已选择护甲: {selected_armor['name']} (等级{armor_level}, 类型{armor_type})")
+        else:
+            print("已选择：无护甲")
+    else:
+        print("未找到护甲数据，将使用无护甲设置")
+    
+    # 设置保护的身体部位
+    protected_areas = {
+        1: ["胸部", "腹部"],
+        2: ["胸部", "腹部", "下腹部"],
+        3: ["胸部", "腹部", "下腹部", "大臂"]
+    }.get(armor_type, [])  # 如果没有护甲，返回空列表
+    
+    # 其他输入保持不变
     distance = get_decimal_input("输入目标距离 (0.0-200.0): ", Decimal('0.0'), Decimal('200.0'))
-    armor_type = get_int_input("输入护甲类型 (1-半甲, 2-全甲, 3-重甲): ", 1, 3)
     arrow_type = get_int_input("输入箭矢类型 (1-玻纤柳叶, 2-碳纤维刺骨, 3-碳纤维穿甲): ", 1, 3)
     
-    # 新增：是否装配增强弓弦
+    # 是否装配增强弓弦
     enhanced_string = get_yes_no_input("是否装配增强弓弦? (是/否): ")
     
     # 根据是否使用增强弓弦选择部位倍率字典
@@ -172,7 +315,11 @@ def main():
     # 显示当前配置
     print("\n===== 当前配置 =====")
     print(f"头盔: {helmet_durability:.1f}耐久, {helmet_level}级防护")
-    print(f"护甲: {armor_durability:.1f}耐久, {armor_level}级防护, 类型{armor_type}")
+    
+    # 显示护甲类型为文字
+    armor_type_str = {1: "半甲", 2: "全甲", 3: "重甲"}.get(armor_type, "无")
+    print(f"护甲: {armor_durability:.1f}耐久, {armor_level}级防护, 类型: {armor_type_str}")
+    
     print(f"距离: {distance:.1f}米")
     print(f"箭矢: {arrows[arrow_type]['name']}")
     print(f"增强弓弦: {'已装配' if enhanced_string else '未装配'}")
@@ -184,7 +331,7 @@ def main():
     print("1 = 瞬发 (基础伤害76.5, 护甲伤害55.25, 拉弓时间80ms)")
     print("2 = 满蓄 (基础伤害90.0, 护甲伤害65.0, 拉弓时间{}ms)".format(460 if enhanced_string else 540))
     
-    # 主循环
+    # 主循环（保持不变）
     while health > 0:
         # 输入本次射击方式
         shot_mode = ""
@@ -254,7 +401,7 @@ def main():
                 gear_level = helmet_level
         # 身体部位命中处理
         else:
-            if armor_level > 0 and armor_durability > Decimal('0') and location in armor_protection[armor_type]:
+            if armor_level > 0 and armor_durability > Decimal('0') and location in protected_areas:
                 protected = True
                 gear_type = "护甲"
                 gear_durability = armor_durability
@@ -351,4 +498,6 @@ def main():
             print(f"{loc}: {count}次")
 
 if __name__ == "__main__":
+    # 玩家初始状态
+    health = Decimal('100.0')
     main()
