@@ -311,7 +311,6 @@ def main():
     # 选择头盔
     helmet_level = 0
     helmet_durability = Decimal('0.0')
-    armor_type = 0
     
     if helmets:
         selected_helmet, helmet_durability = select_protection(helmets, "头盔")
@@ -345,8 +344,6 @@ def main():
         2: ['胸部', '腹部', '下腹部'],
         3: ['胸部', '腹部', '下腹部', '大臂']
     }.get(armor_type_value, [])  # 如果没有护甲，返回空列表
-    
-    # 后续代码保持不变...
     
     # 加载武器和子弹数据
     print("正在加载武器数据...")
@@ -424,8 +421,17 @@ def main():
     # 计算武器衰减倍率
     weapon_decay_multiplier = calculate_weapon_decay(float(distance), selected_weapon)
     
-    # 获取护甲衰减倍率 (根据护甲等级)
+    # 初始化头盔和护甲衰减倍率
+    helmet_decay_multiplier = Decimal('0.0')
     armor_decay_multiplier = Decimal('0.0')
+    
+    # 计算头盔衰减倍率 (根据头盔等级)
+    if helmet_level > 0 and helmet_level <= 6:
+        helmet_decay_multiplier = Decimal(str(
+            selected_bullet['armor_decay_factors'][helmet_level - 1]
+        ))
+    
+    # 计算护甲衰减倍率 (根据护甲等级)
     if armor_level > 0 and armor_level <= 6:
         armor_decay_multiplier = Decimal(str(
             selected_bullet['armor_decay_factors'][armor_level - 1]
@@ -462,7 +468,9 @@ def main():
     print(f"口径: {selected_weapon['raw_caliber']}")
     print(f"距离: {distance}米, 武器衰减倍率: {weapon_decay_multiplier}")
     print(f"穿透等级: {penetration_level}, 伤害倍率: {base_damage_multiplier}")
-    print(f"护甲倍率: {base_armor_multiplier}, 护甲衰减倍率: {armor_decay_multiplier}")
+    print(f"护甲倍率: {base_armor_multiplier}")
+    print(f"头盔衰减倍率: {helmet_decay_multiplier}")
+    print(f"护甲衰减倍率: {armor_decay_multiplier}")
     
     # 计算射击间隔
     if fire_rate:
@@ -479,11 +487,6 @@ def main():
     player_health = Decimal('100.0')
     current_helmet_durability = helmet_durability
     current_armor_durability = armor_durability
-    protected_areas = {
-        1: ['胸部', '腹部'],
-        2: ['胸部', '腹部', '下腹部'],
-        3: ['胸部', '腹部', '下腹部', '大臂']
-    }.get(armor_type_value, [])
     valid_parts = ['头部', '胸部', '腹部', '大臂', '小臂', '大腿', '小腿', '下腹部', '未命中']
     
     hit_count = 0
@@ -555,7 +558,7 @@ def main():
         
         # 计算护甲伤害
         weapon_armor_damage_dec = Decimal(str(weapon_armor_damage))
-        armor_damage_value = weapon_armor_damage_dec * base_armor_multiplier * armor_decay_multiplier * weapon_decay_multiplier
+        armor_damage_value = Decimal('0.0')
         final_damage = Decimal('0.0')
         protector_destroyed = False
         armor_damage_dealt = Decimal('0.0')
@@ -564,6 +567,12 @@ def main():
         is_338_lap_mag = selected_bullet['caliber'] == '338lapmag'
         
         if is_protected:
+            # 根据防护装备类型选择正确的衰减倍率
+            if protector_type == 'helmet':
+                armor_damage_value = weapon_armor_damage_dec * base_armor_multiplier * helmet_decay_multiplier * weapon_decay_multiplier
+            else:
+                armor_damage_value = weapon_armor_damage_dec * base_armor_multiplier * armor_decay_multiplier * weapon_decay_multiplier
+            
             # 计算剩余耐久
             remaining_durability = current_protector_durability - armor_damage_value
             if remaining_durability <= Decimal('0'):
@@ -578,11 +587,16 @@ def main():
             
             # 计算伤害
             part_multiplier = body_part_multipliers[hit_part]
-            denominator = weapon_armor_damage_dec * base_armor_multiplier * armor_decay_multiplier * weapon_decay_multiplier
+            denominator = weapon_armor_damage_dec * base_armor_multiplier * weapon_decay_multiplier
             
             if denominator == Decimal('0'):
                 ratio = Decimal('0.0')
             else:
+                # 根据防护类型使用正确的衰减倍率
+                if protector_type == 'helmet':
+                    denominator *= helmet_decay_multiplier
+                else:
+                    denominator *= armor_decay_multiplier
                 ratio = current_protector_durability / denominator
             
             weapon_damage_dec = Decimal(str(weapon_damage))
@@ -662,4 +676,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
