@@ -109,7 +109,7 @@ def select_item(item_type, item_class, items_dict):
     
     while True:
         try:
-            choice = int(input("请输入选择(1-{len(items)}): "))
+            choice = int(input(f"请输入选择(1-{len(items)}): "))
             if 1 <= choice <= len(items):
                 return items[choice-1]
             print("编号无效，请重新输入")
@@ -131,8 +131,8 @@ def get_float_input(prompt, max_value=None):
 def main():
     print("\n=== 装备维修计算器 ===")
     print("\n请选择装备类型:")
-    print("1. 护甲")
-    print("2. 头盔")
+    print("1. 头盔")  # 修改为1代表头盔
+    print("2. 护甲")  # 修改为2代表护甲
     
     # 选择装备类型
     while True:
@@ -147,8 +147,9 @@ def main():
     # 选择装备等级
     print("\n请选择装备等级:")
     for level in range(1, 7):
-        item_type = "护甲" if type_choice == 1 else "头盔"
-        items_dict = armors if type_choice == 1 else helmets
+        # 修改类型判断逻辑
+        item_type = "头盔" if type_choice == 1 else "护甲"
+        items_dict = helmets if type_choice == 1 else armors  # 修改字典选择逻辑
         count = len(items_dict.get(level, []))
         print(f"{level}. {level}级{item_type} ({count}件可用)")
     
@@ -162,8 +163,9 @@ def main():
             print("请输入有效数字")
     
     # 选择具体装备
-    item_type = "护甲" if type_choice == 1 else "头盔"
-    items_dict = armors if type_choice == 1 else helmets
+    # 修改类型判断逻辑
+    item_type = "头盔" if type_choice == 1 else "护甲"
+    items_dict = helmets if type_choice == 1 else armors  # 修改字典选择逻辑
     item = select_item(item_type, class_choice, items_dict)
     
     if not item:
