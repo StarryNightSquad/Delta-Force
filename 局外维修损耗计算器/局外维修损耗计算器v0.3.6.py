@@ -163,18 +163,20 @@ def main():
     
     # 选择装备类型
     print("\n请选择装备类型:")
-    print("1. 护甲")
-    print("2. 头盔")
+    print("1. 头盔")  # 修改为1代表头盔
+    print("2. 护甲")  # 修改为2代表护甲
     item_choice = validate_int_input("请输入选择(1-2): ", 1, 2, "装备类型")
     
-    item_type = "护甲" if item_choice == 1 else "头盔"
-    data_source = armor_data if item_choice == 1 else helmet_data
+    # 修改类型判断逻辑
+    item_type = "头盔" if item_choice == 1 else "护甲"
+    data_source = helmet_data if item_choice == 1 else armor_data  # 修改字典选择逻辑
     
     # 选择装备等级 (1-6级)
-    print("\n请选择装备等级:")
+    print(f"\n请选择{item_type}等级:")
     for level in range(1, 7):
         count = len(data_source.get(level, []))
-        print(f"{level}. {level}级装备 ({count}件可用)")
+        # 修改显示格式，使用具体的装备类型而非通用"装备"
+        print(f"{level}. {level}级{item_type} ({count}件可用)")
     
     level_choice = validate_int_input("请输入选择(1-6): ", 1, 6, "装备等级")
     
