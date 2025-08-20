@@ -131,8 +131,8 @@ def get_float_input(prompt, max_value=None):
 def main():
     print("\n=== 装备维修计算器 ===")
     print("\n请选择装备类型:")
-    print("1. 头盔")  # 修改为1代表头盔
-    print("2. 护甲")  # 修改为2代表护甲
+    print("1. 头盔")  
+    print("2. 护甲")  
     
     # 选择装备类型
     while True:
@@ -147,7 +147,6 @@ def main():
     # 选择装备等级
     print("\n请选择装备等级:")
     for level in range(1, 7):
-        # 修改类型判断逻辑
         item_type = "头盔" if type_choice == 1 else "护甲"
         items_dict = helmets if type_choice == 1 else armors  # 修改字典选择逻辑
         count = len(items_dict.get(level, []))
@@ -163,7 +162,6 @@ def main():
             print("请输入有效数字")
     
     # 选择具体装备
-    # 修改类型判断逻辑
     item_type = "头盔" if type_choice == 1 else "护甲"
     items_dict = helmets if type_choice == 1 else armors  # 修改字典选择逻辑
     item = select_item(item_type, class_choice, items_dict)
