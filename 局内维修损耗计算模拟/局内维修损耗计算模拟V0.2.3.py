@@ -20,16 +20,6 @@ def parse_efficiency(value):
         return Decimal('0')
     
     if isinstance(value, str):
-        # 处理范围值（如"8.8-8.9"）
-        if '-' in value:
-            parts = value.split('-')
-            try:
-                v1 = Decimal(parts[0].strip())
-                v2 = Decimal(parts[1].strip())
-                return (v1 + v2) / 2
-            except:
-                return Decimal('0')
-        
         # 处理单个值
         try:
             return Decimal(value.strip())
