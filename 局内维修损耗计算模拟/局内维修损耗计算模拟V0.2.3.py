@@ -14,6 +14,34 @@ def round_to_two(x):
     """四舍五入到小数点后两位"""
     return x.quantize(Decimal('0.01'))
 
+def parse_efficiency(value):
+    """解析维修效率值，返回Decimal类型"""
+    if value is None:
+        return Decimal('0')
+    
+    if isinstance(value, str):
+        # 处理范围值（如"8.8-8.9"）
+        if '-' in value:
+            parts = value.split('-')
+            try:
+                v1 = Decimal(parts[0].strip())
+                v2 = Decimal(parts[1].strip())
+                return (v1 + v2) / 2
+            except:
+                return Decimal('0')
+        
+        # 处理单个值
+        try:
+            return Decimal(value.strip())
+        except:
+            return Decimal('0')
+    
+    # 处理数字类型
+    try:
+        return Decimal(str(value))
+    except:
+        return Decimal('0')
+
 def load_armor_data(file_path):
     """从Excel文件加载护甲和头盔数据"""
     wb = openpyxl.load_workbook(file_path)
@@ -32,14 +60,6 @@ def load_armor_data(file_path):
             
         level = row[1]  # B列
         armor_type = row[2]  # C列
-        max_durability = row[6]  # G列
-        repair_loss = row[8]  # I列
-        
-        # 维修效率列调整
-        efficiency_self = row[10]  # K列 (自制)
-        efficiency_std = row[12]   # M列 (标准)
-        efficiency_prec = row[14]  # O列 (精密)
-        efficiency_adv = row[16]   # Q列 (高级)
         
         # 处理所有1-6级装备
         if not isinstance(level, (int, float)) or level < 1 or level > 6:
@@ -47,22 +67,18 @@ def load_armor_data(file_path):
         
         level = int(level)
         
-        # 处理维修效率值（有些单元格包含范围，取平均值）
-        def parse_efficiency(value):
-            if value is None:
-                return 0
-            if isinstance(value, str):
-                if '-' in value:
-                    parts = value.split('-')
-                    try:
-                        return (float(parts[0]) + float(parts[1])) / 2
-                    except (ValueError, TypeError):
-                        return 0
-                try:
-                    return float(value)
-                except (TypeError, ValueError):
-                    return 0
-            return float(value)
+        # 转换数值类型为Decimal
+        try:
+            max_durability = Decimal(str(row[6])) if row[6] is not None else Decimal('0')  # G列
+            repair_loss = Decimal(str(row[8])) if row[8] is not None else Decimal('0')      # I列
+        except:
+            continue
+        
+        # 只读取K、M、O、Q四列的维修效率数据
+        efficiency_self = row[10]  # K列 (自制)
+        efficiency_std = row[12]   # M列 (标准)
+        efficiency_prec = row[14]  # O列 (精密)
+        efficiency_adv = row[16]   # Q列 (高级)
         
         # 创建装备数据字典
         equipment = {
@@ -70,7 +86,7 @@ def load_armor_data(file_path):
             'level': level,
             'type': armor_type,
             'max_durability': max_durability,
-            'repair_loss': repair_loss if repair_loss is not None else 0,
+            'repair_loss': repair_loss,
             'efficiencies': {
                 '1': parse_efficiency(efficiency_self),  # 自制
                 '2': parse_efficiency(efficiency_std),   # 标准
@@ -184,7 +200,7 @@ def main():
         helmet_counts.append(f"{level}级({count})")
     print(f"头盔: {' '.join(helmet_counts)}")
     
-    print("\n=== 装备维修计算器 ===")
+    print("\n=== 装备维修计算模拟 ===")
     
     # 选择装备类型（调整顺序：1头盔 2护甲）
     print("\n请选择装备类型:")
@@ -257,8 +273,8 @@ def main():
     print(f"  4. 高级维修组合: {selected_equip['efficiencies']['4']}")
     
     # 设置基础参数
-    initial_max = Decimal(selected_equip['max_durability'])
-    repair_loss = Decimal(selected_equip['repair_loss'])
+    initial_max = selected_equip['max_durability']
+    repair_loss = selected_equip['repair_loss']
     efficiencies = selected_equip['efficiencies']
     
     # 输入当前状态 - 添加严格的验证
@@ -310,7 +326,7 @@ def main():
                     '3': '精密维修包',
                     '4': '高级维修组合'
                 }[choice]
-                efficiency = Decimal(efficiencies[choice])
+                efficiency = efficiencies[choice]
                 print(f"已选择: {tool_name} (效率={efficiency})")
                 break
             print("错误: 无效的选择，请输入1-4之间的数字")
