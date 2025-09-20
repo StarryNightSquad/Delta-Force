@@ -162,7 +162,7 @@ def validate_input(prompt, input_type, min_val=None, max_val=None, decimal_place
 
 def main():
     # 加载护甲数据
-    file_path = "S5护甲数据.xlsx"
+    file_path = "S6护甲数据.xlsx"
     if not os.path.exists(file_path):
         print(f"错误: 找不到数据文件 {file_path}")
         return
