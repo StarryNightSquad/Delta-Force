@@ -37,7 +37,7 @@ def get_int_input(prompt, min_val, max_val):
 def load_melee_weapons_data():
     """加载近战武器数据"""
     try:
-        wb = openpyxl.load_workbook('S5近战武器.xlsx', data_only=True)
+        wb = openpyxl.load_workbook('S6近战武器.xlsx', data_only=True)
         ws = wb['Sheet1']
         
         weapons = []
@@ -146,7 +146,7 @@ def select_protection(items, item_type):
 def load_armor_data():
     """加载护甲和头盔数据"""
     try:
-        wb = openpyxl.load_workbook('S5护甲数据.xlsx', data_only=True)
+        wb = openpyxl.load_workbook('S6护甲数据.xlsx', data_only=True)
         ws = wb.active
         
         armors = []
@@ -495,4 +495,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
