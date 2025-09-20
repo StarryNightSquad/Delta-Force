@@ -3,6 +3,16 @@ print("本程序由B站繁星攻略组制作")
 import sys
 from decimal import Decimal, ROUND_HALF_UP
 import openpyxl
+import msvcrt
+import os
+
+# 全局调试标志
+DEBUG_MODE = False
+
+def debug_print(*args, **kwargs):
+    """只在调试模式下打印信息"""
+    if DEBUG_MODE:
+        print("[DEBUG]", *args, **kwargs)
 
 def get_decimal_input(prompt, min_val, max_val, decimal_places):
     """获取精确的小数输入"""
@@ -34,6 +44,17 @@ def get_int_input(prompt, min_val, max_val):
         except ValueError:
             print("输入错误，请输入整数。")
 
+def wait_for_key(continue_msg="按 Enter 开始新一轮计算，按 ESC 结束程序"):
+    """等待用户按键，返回True继续，False退出"""
+    print(f"\n{continue_msg}")
+    while True:
+        if msvcrt.kbhit():
+            key = msvcrt.getch()
+            if key == b'\r':  # Enter键
+                return True
+            elif key == b'\x1b':  # ESC键
+                return False
+
 def standardize_caliber(caliber):
     """标准化口径表示，确保匹配"""
     if caliber is None:
@@ -44,7 +65,7 @@ def standardize_caliber(caliber):
 def load_weapons_data():
     """加载武器数据"""
     try:
-        wb = openpyxl.load_workbook('S5夺金武器.xlsx', data_only=True)
+        wb = openpyxl.load_workbook('S6夺金武器.xlsx', data_only=True)
         ws = wb['夺金模式']
         
         weapons = []
@@ -111,6 +132,7 @@ def load_weapons_data():
             
             weapons.append(weapon_data)
         
+        debug_print(f"成功加载 {len(weapons)} 种武器")
         return weapons
     
     except Exception as e:
@@ -120,7 +142,7 @@ def load_weapons_data():
 def load_bullets_data():
     """加载子弹数据"""
     try:
-        wb = openpyxl.load_workbook('S5子弹数据.xlsx', data_only=True)
+        wb = openpyxl.load_workbook('S6子弹数据.xlsx', data_only=True)
         ws = wb['子弹数据']
         
         bullets = []
@@ -164,6 +186,7 @@ def load_bullets_data():
             
             bullets.append(bullet_data)
         
+        debug_print(f"成功加载 {len(bullets)} 种子弹")
         return bullets
     
     except Exception as e:
@@ -173,25 +196,31 @@ def load_bullets_data():
 def calculate_weapon_decay(distance, weapon):
     """计算武器衰减倍率"""
     if not weapon['decay_distances']:
+        debug_print(f"武器 {weapon['name']} 无衰减数据，使用默认倍率 1.0")
         return Decimal('1.0')
     
     # 如果距离小于第一个衰减距离，无衰减
     if distance <= weapon['decay_distances'][0]:
+        debug_print(f"距离 {distance} 小于第一个衰减距离 {weapon['decay_distances'][0]}，无衰减")
         return Decimal('1.0')
     
     # 检查后续衰减距离
     for i in range(1, len(weapon['decay_distances'])):
         if distance <= weapon['decay_distances'][i]:
-            return Decimal(str(weapon['decay_factors'][i-1]))
+            decay_factor = Decimal(str(weapon['decay_factors'][i-1]))
+            debug_print(f"距离 {distance} 在衰减区间 {weapon['decay_distances'][i-1]}-{weapon['decay_distances'][i]}，衰减倍率: {decay_factor}")
+            return decay_factor
     
     # 如果超过所有衰减距离，使用最后一个衰减倍率
-    return Decimal(str(weapon['decay_factors'][-1]))
+    decay_factor = Decimal(str(weapon['decay_factors'][-1]))
+    debug_print(f"距离 {distance} 超过所有衰减距离，使用最后衰减倍率: {decay_factor}")
+    return decay_factor
 
 # 读取护甲与头盔数据
 def load_armor_data():
     """加载护甲和头盔数据"""
     try:
-        wb = openpyxl.load_workbook('S5护甲数据.xlsx', data_only=True)
+        wb = openpyxl.load_workbook('S6护甲数据.xlsx', data_only=True)
         ws = wb.active
         
         armors = []
@@ -248,6 +277,7 @@ def load_armor_data():
             elif current_section == "helmet":
                 helmets.append(item_data)
                 
+        debug_print(f"成功加载 {len(armors)} 种护甲和 {len(helmets)} 种头盔")
         return armors, helmets
     
     except Exception as e:
@@ -278,6 +308,7 @@ def select_protection(items, item_type):
     
     # 处理"无"选项
     if level_choice == 0:
+        debug_print(f"用户选择无{item_type}")
         return None, Decimal('0.0')
     
     selected_level = sorted_levels[level_choice - 1]
@@ -298,9 +329,11 @@ def select_protection(items, item_type):
         0.0, max_durability, 1
     )
     
+    debug_print(f"选择{item_type}: {selected_item['name']}, 等级: {selected_item['level']}, 耐久: {durability}")
     return selected_item, durability
 
-def main():
+def run_simulation():
+    """运行一次完整的伤害模拟"""
     # 初始化参数
     print("=== 通用武器伤害模拟器 ===")
     
@@ -345,18 +378,20 @@ def main():
         3: ['胸部', '腹部', '下腹部', '大臂']
     }.get(armor_type_value, [])  # 如果没有护甲，返回空列表
     
+    debug_print(f"护甲类型: {armor_type_value}, 保护部位: {protected_areas}")
+    
     # 加载武器和子弹数据
     print("正在加载武器数据...")
     weapons = load_weapons_data()
     if not weapons:
         print("无法加载武器数据，程序退出")
-        return
+        return False
     
     print("正在加载子弹数据...")
     bullets = load_bullets_data()
     if not bullets:
         print("无法加载子弹数据，程序退出")
-        return
+        return False
     
     # 选择武器
     print("\n=== 选择武器 ===")
@@ -388,6 +423,8 @@ def main():
     selected_weapon = category_weapons[weapon_choice - 1]
     weapon_caliber = selected_weapon['caliber']
     
+    debug_print(f"选择武器: {selected_weapon['name']}, 口径: {weapon_caliber}")
+    
     # 霰弹枪警告
     if selected_weapon['category'] == "霰弹枪":
         print("警告：霰弹枪伤害计算可能不准确（多弹丸特性）")
@@ -403,7 +440,7 @@ def main():
         for cal in unique_calibers:
             print(f" - {cal}")
         print("程序将退出。")
-        return
+        return False
     
     # 选择子弹
     print(f"\n=== 选择 {selected_weapon['raw_caliber']} 子弹 ===")
@@ -414,6 +451,8 @@ def main():
     
     bullet_choice = get_int_input("输入子弹编号：", 1, len(caliber_bullets))
     selected_bullet = caliber_bullets[bullet_choice - 1]
+    
+    debug_print(f"选择子弹: {selected_bullet['name']}, 穿透等级: {selected_bullet['penetration_level']}, 伤害倍率: {selected_bullet['base_damage_multiplier']}")
     
     # 输入目标距离
     distance = get_decimal_input("\n请输入目标距离（0-400米）：", 0.0, 400.0, 1)
@@ -430,12 +469,14 @@ def main():
         helmet_decay_multiplier = Decimal(str(
             selected_bullet['armor_decay_factors'][helmet_level - 1]
         ))
+        debug_print(f"头盔等级 {helmet_level}, 头盔衰减倍率: {helmet_decay_multiplier}")
     
     # 计算护甲衰减倍率 (根据护甲等级)
     if armor_level > 0 and armor_level <= 6:
         armor_decay_multiplier = Decimal(str(
             selected_bullet['armor_decay_factors'][armor_level - 1]
         ))
+        debug_print(f"护甲等级 {armor_level}, 护甲衰减倍率: {armor_decay_multiplier}")
     
     # 设置武器参数
     weapon_damage = selected_weapon['base_damage']
@@ -444,10 +485,15 @@ def main():
     fire_mode = selected_weapon['fire_mode']
     trigger_delay = selected_weapon['trigger_delay']
     
+    debug_print(f"武器基础伤害: {weapon_damage}, 武器护甲伤害: {weapon_armor_damage}")
+    debug_print(f"射速: {fire_rate}, 射击模式: {fire_mode}, 扳机延迟: {trigger_delay}")
+    
     # 设置子弹参数
     penetration_level = selected_bullet['penetration_level']
     base_damage_multiplier = Decimal(str(selected_bullet['base_damage_multiplier']))
     base_armor_multiplier = Decimal(str(selected_bullet['base_armor_multiplier']))
+    
+    debug_print(f"子弹穿透等级: {penetration_level}, 伤害倍率: {base_damage_multiplier}, 护甲倍率: {base_armor_multiplier}")
     
     # 设置部位倍率
     body_part_multipliers = {
@@ -460,6 +506,10 @@ def main():
         '小腿': Decimal(str(selected_weapon['calf_multiplier'])),
     }
     body_part_multipliers['下腹部'] = body_part_multipliers['腹部']
+    
+    debug_print("部位倍率:")
+    for part, multiplier in body_part_multipliers.items():
+        debug_print(f"  {part}: {multiplier}")
     
     # 打印选择的武器和子弹信息
     print("\n=== 武器信息 ===")
@@ -483,6 +533,8 @@ def main():
             Decimal('0.01'), rounding=ROUND_HALF_UP
         )
     
+    debug_print(f"射击间隔: {shot_interval} ms")
+    
     # 初始化状态
     player_health = Decimal('100.0')
     current_helmet_durability = helmet_durability
@@ -501,12 +553,14 @@ def main():
         while True:
             hit_part = input("\n输入命中部位 (头部/胸部/腹部/下腹部/大臂/小臂/大腿/小腿/未命中)：").strip()
             if hit_part.lower() == 'exit':
-                return
+                return True
             if hit_part in valid_parts:
                 hit_statistics[hit_part] += 1
                 hit_count += 1
                 break
             print("无效输入，请重新输入。")
+        
+        debug_print(f"命中部位: {hit_part}, 命中次数: {hit_count}")
         
         # 计算总耗时
         trigger_delay_dec = Decimal(str(trigger_delay))
@@ -515,6 +569,8 @@ def main():
         else:  # 半自动
             total_time = (trigger_delay_dec * Decimal(str(hit_count))) + (shot_interval * Decimal(str(hit_count - 1)))
         total_time = total_time.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        
+        debug_print(f"总耗时: {total_time} ms")
         
         # 处理未命中
         if hit_part == '未命中':
@@ -536,12 +592,14 @@ def main():
                 protector_level = helmet_level
                 protector_type = 'helmet'
                 current_protector_durability = current_helmet_durability
+                debug_print("头部受头盔保护")
         else:
             if armor_level > 0 and current_armor_durability > Decimal('0') and hit_part in protected_areas:
                 is_protected = True
                 protector_level = armor_level
                 protector_type = 'armor'
                 current_protector_durability = current_armor_durability
+                debug_print(f"{hit_part} 受护甲保护")
         
         # 计算穿透倍率
         penetration_multiplier = Decimal('0.0')
@@ -555,6 +613,7 @@ def main():
                 penetration_multiplier = Decimal('0.75')
             else:
                 penetration_multiplier = Decimal('1.0')
+            debug_print(f"穿透等级差: {diff}, 穿透倍率: {penetration_multiplier}")
         
         # 计算护甲伤害
         weapon_armor_damage_dec = Decimal(str(weapon_armor_damage))
@@ -573,6 +632,8 @@ def main():
             else:
                 armor_damage_value = weapon_armor_damage_dec * base_armor_multiplier * armor_decay_multiplier * weapon_decay_multiplier
             
+            debug_print(f"护甲伤害值: {armor_damage_value}")
+            
             # 计算剩余耐久
             remaining_durability = current_protector_durability - armor_damage_value
             if remaining_durability <= Decimal('0'):
@@ -580,6 +641,8 @@ def main():
                 remaining_durability = Decimal('0.0')
             else:
                 remaining_durability = remaining_durability.quantize(Decimal('0.1'), rounding=ROUND_HALF_UP)
+            
+            debug_print(f"剩余耐久: {remaining_durability}, 护甲是否被击碎: {protector_destroyed}")
             
             # 累计护甲伤害
             armor_damage_dealt = current_protector_durability - remaining_durability
@@ -599,6 +662,8 @@ def main():
                     denominator *= armor_decay_multiplier
                 ratio = current_protector_durability / denominator
             
+            debug_print(f"部位倍率: {part_multiplier}, 分母: {denominator}, 比率: {ratio}")
+            
             weapon_damage_dec = Decimal(str(weapon_damage))
             
             # 特殊处理：.338弹药完全穿透护甲
@@ -606,14 +671,17 @@ def main():
                 # .338弹药完全穿透护甲，直接造成全额伤害
                 final_damage = weapon_damage_dec * base_damage_multiplier * part_multiplier * weapon_decay_multiplier
                 print("\n[.338 Lap Mag特殊效果] 完全穿透护甲！")
+                debug_print(".338 Lap Mag特殊效果: 完全穿透护甲")
             else:
                 # 正常护甲穿透计算
                 if current_protector_durability >= armor_damage_value:
                     final_damage = weapon_damage_dec * base_damage_multiplier * part_multiplier * penetration_multiplier * weapon_decay_multiplier
+                    debug_print("护甲未被击穿，使用穿透倍率计算伤害")
                 else:
                     part1 = ratio * weapon_damage_dec * base_damage_multiplier * part_multiplier * penetration_multiplier * weapon_decay_multiplier
                     part2 = (Decimal('1') - ratio) * weapon_damage_dec * base_damage_multiplier * part_multiplier * weapon_decay_multiplier
                     final_damage = part1 + part2
+                    debug_print(f"护甲部分击穿，伤害分两部分计算: {part1} + {part2}")
             
             # 四舍五入伤害值
             final_damage = final_damage.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
@@ -629,6 +697,9 @@ def main():
             weapon_damage_dec = Decimal(str(weapon_damage))
             final_damage = weapon_damage_dec * base_damage_multiplier * part_multiplier * weapon_decay_multiplier
             final_damage = final_damage.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            debug_print("无保护，直接计算伤害")
+        
+        debug_print(f"最终伤害: {final_damage}")
         
         total_damage += final_damage
         player_health -= final_damage
@@ -671,8 +742,35 @@ def main():
             print(f"总攻击次数：{total_shots}次")
             print(f"击杀耗时：{total_time} ms")
             
-            input("\n按回车键结束模拟计算...")
+            # 使用msvcrt等待按键
+            print("\n按任意键结束本次模拟计算...")
+            msvcrt.getch()
+            return True
+
+def main():
+    global DEBUG_MODE
+    
+    print("三角洲行动夺金伤害计算模拟程序 V0.2.8")
+    print("按 ESC 键可随时退出程序")
+    
+    # 检查是否启用调试模式
+    if len(sys.argv) > 1 and (sys.argv[1] == "--debug" or sys.argv[1] == "-d"):
+        DEBUG_MODE = True
+        print("调试模式已启用")
+    
+    while True:
+        result = run_simulation()
+        if not result:
             break
+            
+        # 使用msvcrt检测按键
+        if not wait_for_key():
+            print("\n感谢使用，再见！")
+            break
+            
+        # 清屏并开始新一轮计算
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print("开始新一轮计算...")
 
 if __name__ == "__main__":
     main()
