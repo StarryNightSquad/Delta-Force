@@ -70,7 +70,7 @@ def load_armor_data(file_path):
 
 # 加载数据并显示统计信息
 try:
-    armors, helmets = load_armor_data('S5护甲数据.xlsx')
+    armors, helmets = load_armor_data('S6护甲数据.xlsx')
     
     # 显示装备统计信息
     print("成功加载装备数据:")
