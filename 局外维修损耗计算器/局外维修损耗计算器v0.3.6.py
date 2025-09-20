@@ -132,7 +132,7 @@ def load_equipment_data(file_path):
 def main():
     # 加载装备数据
     try:
-        file_path = "S5护甲数据.xlsx"
+        file_path = "S6护甲数据.xlsx"
         armor_data, helmet_data = load_equipment_data(file_path)
         
         # 统计各等级装备数量
