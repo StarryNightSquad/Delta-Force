@@ -312,7 +312,7 @@ def main():
     total_hits = 0
     total_shots = 0
     total_time_ms = Decimal('0')  # 总耗时（毫秒）
-    shot_type_count = {"瞬发": 0, "满蓄": 0}  # 记录射击方式使用次数
+    shot_type_count = {"瞬发": 0, "半蓄": 0, "满蓄": 0}  # 记录射击方式使用次数
     
     # 显示当前配置
     print("\n===== 当前配置 =====")
@@ -331,14 +331,15 @@ def main():
     print("="*20)
     print("每次攻击前需要选择射击方式：")
     print("1 = 瞬发 (基础伤害76.5, 护甲伤害55.25, 拉弓时间80ms)")
-    print("2 = 满蓄 (基础伤害90.0, 护甲伤害65.0, 拉弓时间{}ms)".format(460 if enhanced_string else 540))
+    print("2 = 半蓄 (基础伤害81.0, 护甲伤害58.5, 拉弓时间{}ms)".format(400 if enhanced_string else 480))
+    print("3 = 满蓄 (基础伤害90.0, 护甲伤害65.0, 拉弓时间{}ms)".format(460 if enhanced_string else 540))
     
-    # 主循环（保持不变）
+    # 主循环
     while health > 0:
         # 输入本次射击方式
         shot_mode = ""
-        while shot_mode not in ["1", "2"]:
-            shot_mode = input("\n输入本次射击方式 (1=瞬发, 2=满蓄): ")
+        while shot_mode not in ["1", "2", "3"]:
+            shot_mode = input("\n输入本次射击方式 (1=瞬发, 2=半蓄, 3=满蓄): ")
         
         if shot_mode == "1":
             # 瞬发
@@ -346,6 +347,12 @@ def main():
             base_armor_damage_this = Decimal('55.25')
             draw_time_this = Decimal('80')  # 毫秒（拉弓时间）
             shot_type = "瞬发"
+        elif shot_mode == "2":
+            # 半蓄
+            base_damage_this = Decimal('81.0')  # 满蓄伤害的0.9倍
+            base_armor_damage_this = Decimal('58.5')  # 满蓄护甲伤害的0.9倍
+            draw_time_this = Decimal('400') if enhanced_string else Decimal('480')  # 毫秒（拉弓时间）
+            shot_type = "半蓄"
         else:
             # 满蓄
             base_damage_this = Decimal('90.0')
