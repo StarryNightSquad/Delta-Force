@@ -114,7 +114,7 @@ def main():
     print("=" * 50)
     
     # 检查文件是否存在
-    file_path = "S5战场武器.xlsx"
+    file_path = "S6战场武器.xlsx"
     if not os.path.exists(file_path):
         print(f"错误: 武器数据文件 '{file_path}' 不存在")
         print("请将Excel文件放在程序同一目录下")
@@ -252,4 +252,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
