@@ -48,7 +48,8 @@
 【腾讯文档】繁星攻略组——三角洲行动S6全武器护甲数据记录
 https://docs.qq.com/sheet/DRGJ3RGx5bWFnZG1o?
 
-更多内容请看B站首页
-https://space.bilibili.com/3546853731731919
-与小黑盒首页
-ID：80727291
+联系我们请加
+
+QQ：1035835099
+
+WX：TangTangMei18
