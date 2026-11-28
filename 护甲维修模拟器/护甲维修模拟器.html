@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三角洲行动 · 护甲维修模拟器</title>
+<style>
+:root{
+  --bg:#f5f6f8; --panel:#fff; --line:#e3e6ec; --txt:#1d2129; --sub:#78808f;
+  --brand:#2b6cb0; --brand-soft:#e8f0fa; --ok:#1f8a5b; --warn:#b4690e; --bad:#c0392b;
+  --radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font:14px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;padding:20px}
+.wrap{max-width:1240px;margin:0 auto}
+header{margin-bottom:16px}
+h1{font-size:20px;font-weight:650;letter-spacing:.3px}
+.sub{color:var(--sub);font-size:12.5px;margin-top:4px}
+.layout{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+.card+.card{margin-top:14px}
+.card h2{font-size:13px;font-weight:600;color:var(--sub);letter-spacing:.5px;margin-bottom:12px;text-transform:uppercase}
+
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tab{flex:1;padding:8px;text-align:center;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:#fafbfc;font-size:13px;transition:.15s}
+.tab.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{padding:3px 6px;border:1px solid var(--line);border-radius:16px;cursor:pointer;font-size:11px;background:#fafbfc;color:var(--sub);min-width:28px;text-align:center;flex:0 0 auto}
+.chip.on{background:var(--brand-soft);border-color:var(--brand);color:var(--brand);font-weight:600}
+input[type=search]{width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;outline:none;background:#fafbfc}
+input[type=search]:focus{border-color:var(--brand);background:#fff}
+
+.list{max-height:520px;overflow:auto;margin-top:10px;border-top:1px solid var(--line)}
+.item{padding:8px 6px;border-bottom:1px solid #f0f2f5;cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.item>div:first-child{min-width:0;flex:1}
+.item:hover{background:#f8fafc}
+.item.on{background:var(--brand-soft);border-left:3px solid var(--brand);padding-left:3px}
+.item .nm{font-size:13px;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .meta{font-size:11.5px;color:var(--sub);margin-top:1px}
+.item .rt{text-align:right;font-size:11.5px;color:var(--sub);white-space:nowrap}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.grid2{grid-template-columns:1fr}}
+label{display:block;font-size:12px;color:var(--sub);margin-bottom:4px}
+.inp{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-variant-numeric:tabular-nums;background:#fafbfc;outline:none}
+.inp:focus{border-color:var(--brand);background:#fff;box-shadow:0 0 0 3px rgba(43,108,176,.1)}
+
+.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.tool{border:1px solid var(--line);border-radius:10px;padding:8px 4px;text-align:center;cursor:pointer;background:#fafbfc;transition:.15s;position:relative}
+.tool.on{border-color:var(--brand);background:var(--brand-soft)}
+.tool.dis{opacity:.35;cursor:not-allowed}
+.tool .c{font-size:13px;font-weight:650}
+.tool .p{font-size:11px;color:var(--sub);margin-top:1px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:1px}
+.d-blue{background:#4a90d9}.d-purple{background:#8e6bbf}.d-gold{background:#c99a2e}.d-red{background:#c0392b}
+
+.row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed #eef0f3;font-size:13px}
+.row:last-child{border-bottom:none}
+.row .k{color:var(--sub)}
+.row .v{font-variant-numeric:tabular-nums;font-weight:600}
+.big{font-size:20px;font-weight:700;color:var(--brand)}
+.badge{display:inline-block;padding:1px 8px;border-radius:20px;font-size:11.5px;font-weight:600}
+.b-ok{background:#e7f5ee;color:var(--ok)}
+.b-warn{background:#fdf1e3;color:var(--warn)}
+.b-bad{background:#fbeaea;color:var(--bad)}
+
+.btn{padding:10px 18px;border:none;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
+.btn-main{background:var(--brand);color:#fff;width:100%}
+.btn-main:hover{background:#245c96}
+.btn-main:disabled{background:#c8d2de;cursor:not-allowed}
+.btn-ghost{background:#f0f2f5;color:var(--txt)}
+.btn-ghost:hover{background:#e6e9ef}
+.actions{display:flex;gap:8px;margin-top:12px}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+th{text-align:left;color:var(--sub);font-weight:500;padding:6px 4px;border-bottom:1px solid var(--line);font-size:11.5px}
+td{padding:6px 4px;border-bottom:1px solid #f2f4f7}
+tr:last-child td{border-bottom:none}
+.empty{color:var(--sub);font-size:12.5px;text-align:center;padding:18px 0}
+.rules{padding:2px 0 4px}
+.rrow{display:flex;gap:12px;padding:7px 0;border-bottom:1px dashed #eef1f4;font-size:12.5px;line-height:1.65}
+.rrow:last-child{border-bottom:0}
+.rrow b{flex:0 0 74px;color:var(--ink);font-weight:600}
+.rrow span{color:var(--sub)}
+.rrow span b{flex:none;color:var(--brand);font-weight:600}
+
+
+.topbar{display:flex;align-items:center;gap:10px;margin:-20px -20px 16px;padding:8px 20px;
+  font-size:12px;color:var(--sub);letter-spacing:.2px;position:relative;z-index:40;
+  border-bottom:1px solid var(--line);background:#fff}
+.topbar b{color:var(--brand);font-weight:600}
+.ver{display:inline-block;margin-left:9px;font-size:11px;font-weight:400;color:var(--brand);
+  background:var(--brand-soft);border:1px solid #cddff4;border-radius:4px;padding:1px 6px;
+  vertical-align:3px;letter-spacing:.3px}
+.upd{font:12px/1.6 inherit;color:var(--sub);cursor:pointer;border:1px solid var(--line);background:#fff;
+  border-radius:4px;padding:2px 9px;white-space:nowrap;margin-left:auto}
+.upd:hover{color:var(--brand);border-color:#cddff4;background:var(--brand-soft)}
+.upd:disabled{opacity:.6;cursor:default}
+.updmsg{font-size:11.5px;color:var(--sub);white-space:nowrap}
+.updmsg.ok{color:#1f8a5b}
+.updmsg.new{color:#b4690e;font-weight:600}
+.updmsg.err{color:#c0392b}
+.topbar .lic{color:#5b87c4;text-decoration:none;border-bottom:1px dotted #a9c2e2}
+.topbar .lic:hover{color:var(--brand);border-bottom-color:var(--brand)}
+.topbar .menu{position:relative;margin-left:8px}
+.topbar .contact{font:12px/1.6 inherit;color:var(--brand);cursor:pointer;background:var(--brand-soft);
+  border:1px solid #cddff4;border-radius:5px;padding:2px 9px;white-space:nowrap}
+.topbar .contact:hover,.topbar .contact.on{background:#dbe9fa}
+.topbar .contact i{font-style:normal;font-size:10px;opacity:.7;margin-left:2px}
+.menu-panel{display:none;position:absolute;right:0;top:calc(100% + 7px);min-width:236px;
+  background:#fff;border:1px solid var(--line);border-radius:9px;box-shadow:0 10px 28px rgba(24,32,45,.14);
+  padding:6px;z-index:50;text-align:left;letter-spacing:0}
+.menu-panel.open{display:block}
+.menu-hint{font-size:11px;color:var(--sub);padding:5px 9px 7px;border-bottom:1px solid #f0f2f5;margin-bottom:4px}
+.mi{display:block;padding:7px 9px;border-radius:6px;text-decoration:none;color:var(--txt)}
+.mi:hover{background:var(--brand-soft)}
+.mi b{display:block;font-size:12.5px;font-weight:600;color:var(--brand);line-height:1.5}
+.mi span{display:block;font-size:11px;color:var(--sub);line-height:1.5}
+.menu-note{margin-top:10px;padding-top:8px;border-top:1px solid #f0f2f5;font-size:10.5px;line-height:1.65;color:#98a1ae}
+.foot{margin-top:22px;padding:14px 0 2px;border-top:1px solid var(--line);
+  color:var(--sub);font-size:11.5px;line-height:1.9;text-align:center}
+.foot a{color:#5b87c4;text-decoration:none;border-bottom:1px dotted #a9c2e2}
+.verline{margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px}
+.ver{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:#98a1ae;letter-spacing:.3px}
+.chk{font:11.5px/1.5 inherit;color:var(--brand);cursor:pointer;background:var(--brand-soft);
+  border:1px solid #cddff4;border-radius:14px;padding:2px 11px;transition:.15s}
+.chk:hover{background:#dbe9fa}
+.chk:disabled{opacity:.55;cursor:default}
+
+
+.wear{display:inline-block;padding:2px 10px;border-radius:11px;font-size:12px;font-weight:600;line-height:1.7;letter-spacing:.2px}
+.w-fn{background:#14532d;color:#eafff1}      
+.w-mw{background:#d7f0dd;color:#1d6b38}      
+.w-ft{background:#ffe8a3;color:#8a5a00}      
+.w-bs{background:#8f1616;color:#ffe6e6}      
+.w-no{background:#eef1f4;color:#8a95a1;font-weight:500}  
+.wTips{font-size:11px;color:var(--sub);margin-top:6px;line-height:1.6}
+
+
+.mtabs{display:flex;gap:6px;margin-bottom:14px;background:#f2f4f7;padding:4px;border-radius:9px}
+.mtab{flex:1;text-align:center;padding:7px 0;border-radius:7px;font-size:12.5px;color:var(--sub);cursor:pointer;
+  font-weight:500;transition:.15s;white-space:nowrap}
+.mtab:hover{color:var(--txt)}
+.mtab.on{background:#fff;color:var(--brand);font-weight:600;box-shadow:0 1px 3px rgba(24,32,45,.1)}
+.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.level{border:1px solid var(--line);border-radius:9px;padding:11px 8px;text-align:center;cursor:pointer;
+  background:#fafbfc;transition:.15s}
+.level:hover{border-color:#c9d7ea;background:#f6f9fd}
+.level.on{border-color:var(--brand);background:var(--brand-soft);box-shadow:0 0 0 2px rgba(43,108,176,.08)}
+.level .lv-n{font-size:13.5px;font-weight:600;color:var(--txt)}
+.level .lv-d{font-size:10.5px;color:var(--sub);margin-top:4px;line-height:1.55}
+.level.on .lv-n{color:var(--brand)}
+
+svg{display:block;width:100%;height:auto}
+.axis{stroke:#dfe3e9;stroke-width:1}
+.gridline{stroke:#eef0f3;stroke-width:1}
+.curve{fill:none;stroke:var(--brand);stroke-width:2.2;stroke-linejoin:round}
+.pt{fill:#fff;stroke:var(--brand);stroke-width:1.6}
+.marker{fill:#c0392b}
+.mlabel{font-size:10.5px;fill:var(--sub)}
+.hint{font-size:12px;color:var(--sub);margin-top:6px;line-height:1.55}
+.warnbox{background:#fff8ec;border:1px solid #f3d9ae;color:#8a5a11;border-radius:8px;padding:8px 10px;font-size:12.5px;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span>本工具由<b>「繁星攻略组」</b>提供 · <a class="lic" href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener license">CC BY-NC-SA 4.0</a></span>
+  <button class="upd" id="btnCheck" type="button">检查更新</button>
+  <span class="updmsg" id="updMsg"></span>
+  <div class="menu">
+    <button class="contact" id="btnContact" type="button" aria-expanded="false" aria-controls="panelContact">联系我们 <i>▾</i></button>
+    <div class="menu-panel" id="panelContact">
+      <div class="menu-hint">数据纠错、机制讨论、授权转载，都欢迎</div>
+      <a class="mi" href="https://www.xiaoheihe.cn/app/user/profile/80727291" target="_blank" rel="noopener"><b>小黑盒</b><span>繁星攻略组主页</span></a>
+      <a class="mi" href="https://github.com/StarryNightSquad/Delta-Force" target="_blank" rel="noopener"><b>GitHub</b><span>仓库 / 问题反馈</span></a>
+      <div class="menu-hint" style="margin-top:8px">许可协议</div>
+      <a class="mi" href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener license"><b>CC BY-NC-SA 4.0</b><span>署名 · 非商业性使用 · 相同方式共享</span></a>
+      <div class="menu-note">转载或修改后发布，请保留「繁星攻略组」署名与本协议。<br>禁止用于商业用途（含付费内容、带货、引流变现）。</div>
+    </div>
+  </div>
+</div>
+<div class="wrap">
+<header>
+  <h1>三角洲行动 · 护甲维修模拟器<span class="ver">V1.0.2</span></h1>
+  <div class="sub">S11 数据 · 局内维修包 / 局外分级维修 · TRD→MDP 曲线查表（与游戏同算法）</div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="card">
+      <h2>选择装备</h2>
+      <div class="tabs">
+        <div class="tab on" data-sec="a">护甲</div>
+        <div class="tab" data-sec="h">头盔</div>
+      </div>
+      <div class="chips" id="chips"></div>
+      <input type="search" id="q" placeholder="搜索名称…">
+      <div class="list" id="list"></div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="card" id="panel" style="display:none">
+      <h2>当前状态</h2>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px">
+        <div>
+          <div style="font-size:16px;font-weight:650" id="eqName">—</div>
+          <div class="hint" id="eqMeta"></div>
+        </div>
+        <button class="btn btn-ghost" id="reset">重置</button>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <label>当前上限 Durability Limit</label>
+          <input class="inp" id="curMax" type="number" step="0.01">
+        </div>
+        <div>
+          <label>剩余耐久 Durability</label>
+          <input class="inp" id="curDur" type="number" step="0.01">
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div>
+          <label>初始上限</label>
+          <div class="inp" style="background:#f0f2f5;color:var(--sub)" id="initShow">—</div>
+        </div>
+        <div>
+          <label>累计修复耐久 TRD</label>
+          <div class="inp" style="background:#f0f2f5;color:var(--sub)" id="trdShow">—</div>
+        </div>
+      </div>
+      <div class="hint">输入当前上限和剩余耐久，TRD 会按曲线自动反推。局内选维修包按点数修，局外按等级直接算金额。</div>
+    </div>
+
+    <div class="card" id="opPanel" style="display:none">
+      <h2>维修操作</h2>
+      <div class="mtabs">
+        <div class="mtab on" data-mode="in">局内 · 维修包</div>
+        <div class="mtab" data-mode="out">局外 · 维修等级</div>
+      </div>
+
+      <div id="paneIn">
+        <div class="tools" id="tools"></div>
+        <div class="grid2">
+          <div>
+            <label>包内剩余点数（整数）</label>
+            <input class="inp" id="pts" type="number" step="1" min="0">
+          </div>
+          <div>
+            <label>该维修包满点</label>
+            <div class="inp" style="background:#f0f2f5;color:var(--sub)" id="ptsMax">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="paneOut" style="display:none">
+        <div class="levels" id="levels"></div>
+        <div class="hint" id="lvHint">局外维修一次结算完：低级维修损耗 ×1.25、维修价格 ×1.25；中级损耗 ×1.0、价格 ×1.0；高级损耗 ×1.0、价格 ×0.8。上限先精确到 1 位小数再去尾取整、金额向上取整。</div>
+      </div>
+
+      <div id="outIn" style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
+        <div class="row"><span class="k">本次实际修复量</span><span class="v" id="rRepair">—</span></div>
+        <div class="row"><span class="k">消耗点数</span><span class="v" id="rCost">—</span></div>
+        <div class="row"><span class="k">包内剩余点数</span><span class="v" id="rPts">—</span></div>
+        <div class="row"><span class="k">新 TRD</span><span class="v" id="rTrd">—</span></div>
+        <div class="row"><span class="k">MDP（上限百分比）</span><span class="v" id="rMdp">—</span></div>
+        <div class="row"><span class="k">维修后上限</span><span class="v big" id="rMax">—</span></div>
+        <div class="row"><span class="k">维修后耐久</span><span class="v" id="rDur">—</span></div>
+        <div class="row"><span class="k">可否出售</span><span class="v" id="rMarket">—</span></div>
+        <div class="row"><span class="k">状态</span><span class="v" id="rState">—</span></div>
+      </div>
+
+      <div id="outOut" style="display:none;margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
+        <div class="row"><span class="k">维修金额</span><span class="v big" id="oCost">—</span></div>
+        <div class="row"><span class="k">维修后上限</span><span class="v big" id="oMax">—</span></div>
+        <div class="row"><span class="k">可否出售</span><span class="v" id="oMarket">—</span></div>
+        <div class="wTips" id="oDetail" style="margin-top:8px"></div>
+      </div>
+
+      <div class="actions" id="actIn">
+        <button class="btn btn-main" id="doRepair">执行维修</button>
+      </div>
+      <div class="warnbox" id="warn" style="display:none"></div>
+    </div>
+
+    <div class="card" id="curvePanel" style="display:none">
+      <h2>耐久衰减曲线（TRD → MDP）</h2>
+      <div id="chart"></div>
+    </div>
+
+    <div class="card" id="histPanel" style="display:none">
+      <h2>维修记录</h2>
+      <table>
+        <thead><tr><th>#</th><th>工具</th><th>消耗</th><th>修复量</th><th>上限变化</th><th>TRD</th><th>包内剩余</th><th>状态</th></tr></thead>
+        <tbody id="hist"><tr><td colspan="8" class="empty">还没有维修记录</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>规则说明</h2>
+      <div class="rules">
+        <div class="rrow"><b>剩余点数</b><span>游戏内维修包剩余点数按<b>向上取整</b>存为整数（如结算 13.98 → 14），下一次维修直接用 14 点计算可修复量，不是用小数。</span></div>
+        <div class="rrow"><b>不可维修</b><span>维修公式里<b>没有下限门槛</b>。唯一判报废的情况是：按 TRD 查表后维修上限仍 &lt; 1，此时再修也救不回来。</span></div>
+        <div class="rrow"><b>TRD / MDP</b><span>TRD 每次累加「实际修复量 × (1−损耗)」，再查曲线得 MDP，新上限 = 初始上限 × MDP。</span></div>
+        <div class="rrow"><b>可否出售</b><span>按维修后上限占初始上限的比例：<b>100%</b> 崭新出厂 · ≥85% 略有磨损 · ≥70% 久经沙场 · &lt;70% 破损不堪（不可出售）；6 件特殊装备固定不可交易。</span></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<footer class="foot">
+  磨损档位：<b>崭新出厂</b> = 上限 100%（无损耗）· <b>略有磨损</b> ≥ 85% · <b>久经沙场</b> ≥ 70% · <b>破损不堪</b> &lt; 70%（不可出售）<br>
+  不可交易装备：金刚防弹衣 / 特里克 MAS2.0 装甲 / 泰坦防弹装甲 / DICH-9 重型头盔 / GT5 指挥官头盔 / H70 夜视精英头盔<br>
+  © 2026 繁星攻略组 · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener license">CC BY-NC-SA 4.0</a> · 数据基于游戏文件静态解析与 S11 表格核对 · V1.0.2（2026-11-28）
+</footer>
+</div>
+
+<script>
+const DATA = [{"n":"摩托马甲","s":"a","lv":1,"t":"半甲","i":20.0,"l":0.15,"e":[3.0,6.0,8.0,9.0],"w":2.44,"p":55,"aim":"/","mv":"/","note":"","hr":"","ns":""},{"n":"尼龙防弹衣","s":"a","lv":1,"t":"半甲","i":25.0,"l":0.09,"e":[3.0,6.0,8.0,9.0],"w":1.7,"p":44,"aim":"/","mv":"/","note":"","hr":"","ns":""},{"n":"轻型防弹衣","s":"a","lv":1,"t":"半甲","i":30.0,"l":0.06,"e":[3.0,6.0,8.0,9.0],"w":3.07,"p":37,"aim":"/","mv":"/","note":"","hr":"","ns":""},{"n":"安保防弹衣","s":"a","lv":1,"t":"半甲","i":20.0,"l":0.12,"e":[3.0,6.0,8.0,9.0],"w":2.44,"p":55,"aim":"/","mv":"/","note":"","hr":"","ns":""},{"n":"简易防刺服","s":"a","lv":2,"t":"半甲","i":30.0,"l":0.15,"e":[2.0,4.0,6.0,7.0],"w":2.74,"p":101,"aim":"/","mv":"/","note":"","hr":"","ns":""},{"n":"TG战术防弹衣","s":"a","lv":2,"t":"半甲","i":40.0,"l":0.09,"e":[2.0,4.0,6.0,7.0],"w":4.04,"p":84,"aim":"/","mv":"/","note":"","hr":"","ns":""},{"n":"通用战术背心","s":"a","lv":2,"t":"半甲","i":50.0,"l":0.06,"e":[2.0,4.0,6.0,7.0],"w":4.19,"p":71,"aim":"/","mv":"/","note":"","hr":"","ns":""},{"n":"HT战术背心","s":"a","lv":2,"t":"半甲","i":35.0,"l":0.12,"e":[2.0,4.0,6.0,7.0],"w":3.38,"p":91,"aim":"/","mv":"/","note":"","hr":"","ns":""},{"n":"制式防弹背心","s":"a","lv":3,"t":"半甲","i":50.0,"l":0.05,"e":[1.5,2.15,3.99,4.31],"w":2.45,"p":156,"aim":"-1%","mv":"/","note":"","hr":"","ns":""},{"n":"TG-H防弹衣","s":"a","lv":3,"t":"全甲","i":75.0,"l":0.09,"e":[1.95,2.8,5.18,5.61],"w":4.5,"p":138,"aim":"-3%","mv":"-1%","note":"","hr":"","ns":""},{"n":"射手战术背心","s":"a","lv":3,"t":"全甲","i":85.0,"l":0.07,"e":[1.58,2.27,4.2,4.54],"w":6.43,"p":132,"aim":"-4%","mv":"-2%","note":"","hr":"","ns":""},{"n":"Hvk快拆防弹衣","s":"a","lv":3,"t":"半甲","i":60.0,"l":0.04,"e":[1.56,2.24,4.14,4.49],"w":3.23,"p":138,"aim":"-1%","mv":"-1%","note":"","hr":"","ns":""},{"n":"武士防弹背心","s":"a","lv":4,"t":"半甲","i":80.0,"l":0.06,"e":[1.03,1.87,3.46,3.75],"w":7.12,"p":238,"aim":"-5%","mv":"-5%","note":"","hr":"","ns":""},{"n":"MK-2战术背心","s":"a","lv":4,"t":"全甲","i":110.0,"l":0.09,"e":[0.779,1.41,2.61,2.83],"w":9.84,"p":239,"aim":"-5%","mv":"-5%","note":"","hr":"","ns":""},{"n":"DT-AVS防弹衣","s":"a","lv":4,"t":"全甲","i":100.0,"l":0.1,"e":[0.696,1.26,2.33,2.53],"w":8.34,"p":249,"aim":"-4%","mv":"-3%","note":"","hr":"","ns":""},{"n":"突击手防弹背心","s":"a","lv":4,"t":"全甲","i":90.0,"l":0.18,"e":[0.696,1.19,2.21,2.39],"w":5.64,"p":260,"aim":"-2%","mv":"-1%","note":"","hr":"","ns":""},{"n":"HMP特勤防弹衣","s":"a","lv":4,"t":"半甲","i":80.0,"l":0.1,"e":[0.745,1.35,2.5,2.71],"w":3.88,"p":239,"aim":"/","mv":"/","note":"","hr":"","ns":""},{"n":"蛟龙行动-战术背心","s":"a","lv":4,"t":"全甲","i":110.0,"l":0.09,"e":[0.779,1.41,2.61,2.83],"w":3.88,"p":233,"aim":"-5%","mv":"-5%","note":"","hr":"","ns":"数据套的MK2，重量套的HMP"},{"n":"精英防弹背心","s":"a","lv":5,"t":"全甲","i":95.0,"l":0.12,"e":[0.284,0.514,1.19,1.29],"w":4.85,"p":515,"aim":"/","mv":"-1%","note":"","hr":"","ns":""},{"n":"FS复合防弹衣","s":"a","lv":5,"t":"全甲","i":105.0,"l":0.09,"e":[0.229,0.414,0.96,1.04],"w":7.12,"p":586,"aim":"-5%","mv":"-3%","note":"","hr":"","ns":""},{"n":"重型防弹背心","s":"a","lv":5,"t":"重甲","i":125.0,"l":0.1,"e":[0.273,0.493,1.25,1.24],"w":9.83,"p":535,"aim":"-10%","mv":"-5%","note":"","hr":"","ns":""},{"n":"Hvk-2 防弹衣","s":"a","lv":5,"t":"重甲","i":115.0,"l":0.14,"e":[0.344,0.622,1.44,1.56],"w":10.33,"p":553,"aim":"-8%","mv":"-7%","note":"","hr":"","ns":""},{"n":"赤枭重装突击背心","s":"a","lv":5,"t":"全甲","i":105.0,"l":0.08,"e":[0.251,0.453,0.84,1.14],"w":8.5,"p":854,"aim":"-10%","mv":"/","note":"","hr":"","ns":""},{"n":"金刚防弹衣","s":"a","lv":6,"t":"重甲","i":140.0,"l":0.15,"e":[0.143,0.259,0.599,0.81],"w":13.68,"p":933,"aim":"-8%","mv":"-7%","note":"","hr":"","ns":""},{"n":"特里克MAS2.0装甲","s":"a","lv":6,"t":"重甲","i":125.0,"l":0.06,"e":[0.104,0.189,0.436,0.59],"w":9.39,"p":959,"aim":"-6%","mv":"-5%","note":"","hr":"","ns":""},{"n":"泰坦防弹装甲","s":"a","lv":6,"t":"重甲","i":150.0,"l":0.09,"e":[0.159,0.288,0.666,0.9],"w":12.04,"p":919,"aim":"-12%","mv":"-8%","note":"","hr":"","ns":""},{"n":"HA-2重型防弹衣","s":"a","lv":6,"t":"重甲","i":115.0,"l":0.11,"e":[0.104,0.189,0.436,0.59],"w":6.86,"p":973,"aim":"-1%","mv":"-3%","note":"","hr":"","ns":""},{"n":"老式钢盔","s":"h","lv":1,"t":"无","i":10.0,"l":0.15,"e":[4.0,4.0,6.0,8.0],"w":1.01,"p":87,"aim":"/","mv":"/","note":"","hr":"/","ns":""},{"n":"奔尼帽","s":"h","lv":1,"t":"无","i":10.0,"l":0.08,"e":[4.0,4.0,6.0,8.0],"w":0.37,"p":87,"aim":"/","mv":"/","note":"","hr":"/","ns":""},{"n":"户外棒球帽","s":"h","lv":1,"t":"无","i":12.0,"l":0.06,"e":[4.0,4.0,6.0,8.0],"w":0.41,"p":72,"aim":"/","mv":"/","note":"","hr":"低","ns":""},{"n":"安保头盔","s":"h","lv":1,"t":"无","i":10.0,"l":0.12,"e":[4.0,4.0,6.0,8.0],"w":0.55,"p":87,"aim":"/","mv":"/","note":"","hr":"/","ns":""},{"n":"复古摩托头盔","s":"h","lv":2,"t":"无","i":18.0,"l":0.15,"e":[2.0,2.0,3.0,4.0],"w":1.63,"p":155,"aim":"/","mv":"/","note":"","hr":"中","ns":""},{"n":"DRO 战术头盔","s":"h","lv":2,"t":"无","i":15.0,"l":0.08,"e":[2.0,2.0,3.0,4.0],"w":1.54,"p":174,"aim":"/","mv":"/","note":"","hr":"/","ns":""},{"n":"MC 防弹头盔","s":"h","lv":2,"t":"无","i":20.0,"l":0.06,"e":[2.0,2.0,3.0,4.0],"w":1.69,"p":144,"aim":"/","mv":"/","note":"","hr":"/","ns":""},{"n":"H01  战术头盔","s":"h","lv":2,"t":"无","i":12.0,"l":0.12,"e":[2.0,2.0,3.0,4.0],"w":0.75,"p":204,"aim":"/","mv":"/","note":"","hr":"/","ns":""},{"n":"防暴头盔","s":"h","lv":3,"t":"无","i":28.0,"l":0.06,"e":[1.59,1.76,2.68,5.74],"w":1.88,"p":265,"aim":"-3%","mv":"-1%","note":"","hr":"中","ns":""},{"n":"DAS防弹头盔","s":"h","lv":3,"t":"无","i":40.0,"l":0.09,"e":[1.44,1.6,2.42,5.2],"w":1.38,"p":206,"aim":"/","mv":"/","note":"","hr":"/","ns":"唯一能扛一枪头"},{"n":"MC201头盔","s":"h","lv":3,"t":"无","i":34.0,"l":0.13,"e":[1.28,1.42,2.15,4.62],"w":1.32,"p":235,"aim":"-1%","mv":"-1%","note":"","hr":"中","ns":"说是有面罩，但实际没有"},{"n":"H07战术头盔","s":"h","lv":3,"t":"无","i":20.0,"l":0.1,"e":[1.15,1.28,1.94,4.15],"w":0.9,"p":333,"aim":"/","mv":"/","note":"","hr":"/","ns":""},{"n":"D6战术头盔","s":"h","lv":4,"t":"有","i":55.0,"l":0.08,"e":[1.05,1.47,2.23,4.79],"w":3.59,"p":376,"aim":"-6%","mv":"-4%","note":"","hr":"高","ns":"呼吸声会被放大，很影响信息获取"},{"n":"DICH训练头盔","s":"h","lv":4,"t":"无","i":35.0,"l":0.15,"e":[0.429,0.6,0.91,1.95],"w":1.13,"p":513,"aim":"/","mv":"-2%","note":"","hr":"高","ns":"最大听力加成没有之一"},{"n":"GT1战术头盔","s":"h","lv":4,"t":"有","i":48.0,"l":0.1,"e":[0.629,0.88,1.33,2.87],"w":4.05,"p":410,"aim":"-4%","mv":"-4%","note":"","hr":"中","ns":""},{"n":"蛟龙行动-战术头盔","s":"h","lv":4,"t":"有","i":48.0,"l":0.1,"e":[0.629,0.88,1.33,2.87],"w":4.05,"p":404,"aim":"-4%","mv":"-4%","note":"","hr":"中","ns":"纯换皮，重量未知"},{"n":"MHS战术头盔","s":"h","lv":4,"t":"无","i":30.0,"l":0.12,"e":[0.557,0.78,1.18,2.54],"w":2.24,"p":555,"aim":"-3%","mv":"-1%","note":"","hr":"中","ns":""},{"n":"Mask-1 铁壁头盔","s":"h","lv":5,"t":"有","i":75.0,"l":0.07,"e":[0.527,0.738,1.4,3.0],"w":3.89,"p":634,"aim":"-6%","mv":"-5%","note":"","hr":"高","ns":"同样放大喘息，视野更小"},{"n":"DICH-1战术头盔","s":"h","lv":5,"t":"无","i":40.0,"l":0.16,"e":[0.169,0.237,0.45,0.966],"w":1.71,"p":943,"aim":"-1%","mv":"-1%","note":"","hr":"高","ns":"扛不住5级弹一枪头"},{"n":"GN重型头盔","s":"h","lv":5,"t":"有","i":50.0,"l":0.07,"e":[0.237,0.332,0.63,1.35],"w":3.63,"p":824,"aim":"-4%","mv":"-3%","note":"","hr":"中","ns":""},{"n":"GN久战重型夜视头盔","s":"h","lv":5,"t":"有","i":20.0,"l":0.07,"e":[0.113,0.159,0.63,1.35],"w":3.6,"p":824,"aim":"/","mv":"-3%","note":"","hr":"中","ns":""},{"n":"GN重型夜视头盔","s":"h","lv":5,"t":"有","i":50.0,"l":0.07,"e":[0.237,0.332,0.63,1.35],"w":3.8,"p":824,"aim":"-4%","mv":"-3%","note":"","hr":"中","ns":""},{"n":"H09防暴头盔","s":"h","lv":5,"t":"有","i":45.0,"l":0.16,"e":[0.294,0.411,0.78,1.67],"w":2.3,"p":265,"aim":"-4%","mv":"-3%","note":"","hr":"中","ns":""},{"n":"赤枭装甲防弹面具","s":"h","lv":5,"t":"","i":75.0,"l":0.07,"e":[0.105,0.147,1.13,2.42],"w":3.0,"p":915,"aim":"-5%","mv":"/","note":"","hr":"高","ns":"只有正面防护"},{"n":"DICH-9重型头盔","s":"h","lv":6,"t":"无","i":50.0,"l":0.1,"e":[0.091,0.128,0.242,0.65],"w":2.06,"p":1735,"aim":"-3%","mv":"-1%","note":"","hr":"中","ns":"唯一没有面罩的6级头"},{"n":"GT5指挥官头盔","s":"h","lv":6,"t":"有","i":60.0,"l":0.07,"e":[0.079,0.11,0.209,0.56],"w":3.63,"p":1562,"aim":"-8%","mv":"-3%","note":"","hr":"中","ns":""},{"n":"H70精英头盔","s":"h","lv":6,"t":"有","i":55.0,"l":0.16,"e":[0.135,0.189,0.358,0.96],"w":3.58,"p":1649,"aim":"-4%","mv":"-3%","note":"","hr":"中","ns":""},{"n":"H70夜视精英头盔","s":"h","lv":6,"t":"有","i":55.0,"l":0.16,"e":[0.135,0.189,0.358,0.96],"w":3.8,"p":1649,"aim":"-4%","mv":"-3%","note":"","hr":"","ns":""}];
+const TOOLS_ARMOR = [{k:'蓝',p:50},{k:'紫',p:75},{k:'金',p:120},{k:'红',p:200}];
+const TOOLS_HELMET = [{k:'蓝',p:30},{k:'紫',p:50},{k:'金',p:75},{k:'红',p:100}];
+const TOOL_CLASS = {'蓝':'d-blue','紫':'d-purple','金':'d-gold','红':'d-red'};
+const r2 = v => Math.round(v*100)/100;
+const fmt = (v,d=2) => (v==null||isNaN(v)) ? '—' : Number(v).toFixed(d);
+const ceil = v => { const r = Math.ceil(v - 1e-9); return r <= 0 ? 0 : r; };
+
+const S = { sec:'a', lv:'all', q:'', eq:null, curMax:0, curDur:0, trd:0, tool:'紫', pts:0, curve:null, hist:[],
+            mode:'in', lvSel:'mid' };
+
+
+
+
+
+const LEVELS = {
+  low : {n:'低级', reduceMul:1.25, costMul:1.25, d:'维修损耗 ×1.25<br>维修价格 ×1.25'},
+  mid : {n:'中级', reduceMul:1.00, costMul:1.00, d:'维修损耗 ×1.0<br>维修价格 ×1.0'},
+  high: {n:'高级', reduceMul:1.00, costMul:0.80, d:'维修损耗 ×1.0<br>维修价格 ×0.8'},
+};
+
+
+const NON_TRADABLE = ['金刚防弹衣','特里克MAS2.0装甲','泰坦防弹装甲','DICH-9重型头盔','GT5指挥官头盔','H70夜视精英头盔'];
+const norm = s => String(s||'').replace(/\s/g,'');
+function isNonTradable(name){
+  const n = norm(name);
+  return NON_TRADABLE.some(k => n.includes(norm(k)));
+}
+
+function marketOf(eq, max){
+  if(isNonTradable(eq.n)) return {cls:'w-no', label:'不可交易', tip:'该装备不在交易行流通'};
+  const r = eq.i > 0 ? max/eq.i : 0;
+  const EPS = 1e-9;                                 
+  if(r >= 1 - 1e-6)      return {cls:'w-fn', label:'崭新出厂', tip:'可出售', pct:r};
+  if(r >= 0.85 - EPS)    return {cls:'w-mw', label:'略有磨损', tip:'可出售', pct:r};
+  if(r >= 0.70 - EPS)    return {cls:'w-ft', label:'久经沙场', tip:'可出售', pct:r};
+  return {cls:'w-bs', label:'破损不堪', tip:'不可出售', pct:r};
+}
+
+
+function buildCurve(eq){
+  const pts=[[0,1]];
+  let cm=eq.i, trd=0;
+  for(let guard=0; guard<100; guard++){
+    if(cm<=0.1) break;
+    const ratio=(cm-0)/cm;                       
+    const logTerm=Math.log10(cm/eq.i);
+    let newCm=cm*(1-ratio*(eq.l-logTerm));
+    newCm=Math.max(0,newCm);
+    trd+=(newCm-0)*(1-eq.l);                     
+    if(newCm>0.1) pts.push([trd,newCm/eq.i]);    
+    cm=newCm;
+    if(newCm<=0.1) break;
+  }
+  
+  const last=pts[pts.length-1];
+  if(last[1]>0.0001){
+    pts.push([last[0]+last[1]*eq.i*(1-eq.l), 0]);
+  }
+  return pts;
+}
+function mdpAt(trd,pts){
+  if(trd<=pts[0][0]) return pts[0][1];
+  const last=pts[pts.length-1];
+  if(trd>=last[0]) return Math.max(0,last[1]);
+  for(let i=0;i<pts.length-1;i++){
+    const [x0,y0]=pts[i],[x1,y1]=pts[i+1];
+    if(trd>=x0&&trd<=x1){ const t=(trd-x0)/(x1-x0||1); return y0+t*(y1-y0); }
+  }
+  return last[1];
+}
+function trdAt(mdp,pts){
+  if(mdp>=pts[0][1]) return pts[0][0];
+  const last=pts[pts.length-1];
+  if(mdp<=last[1]) return last[0];
+  for(let i=0;i<pts.length-1;i++){
+    const [x0,y0]=pts[i],[x1,y1]=pts[i+1];
+    if(mdp<=y0&&mdp>=y1){ const t=(mdp-y0)/((y1-y0)||1); return x0+t*(x1-x0); }
+  }
+  return last[0];
+}
+
+
+function solveFullX(eq, trd, curDur, maxRepair, curve){
+  const f = x => curDur + x - eq.i*mdpAt(trd + x*(1-eq.l), curve);
+  if(f(0) >= 0) return {x:0, full:true};
+  if(f(maxRepair) < 0) return {x:maxRepair, full:false};
+  let lo=0, hi=maxRepair;
+  for(let k=0;k<64;k++){ const m=(lo+hi)/2; if(f(m)<0) lo=m; else hi=m; }
+  return {x:(lo+hi)/2, full:true};
+}
+function compute(target){
+  const eq=S.eq; if(!eq) return null;
+  const {curMax,curDur,trd}=target;
+  const eff=eq.e[S.tool=='蓝'?0:S.tool=='紫'?1:S.tool=='金'?2:3];
+  const bagMax=(eq.s=='a'?TOOLS_ARMOR:TOOLS_HELMET).find(t=>t.k===S.tool).p;
+  if(!eff){ return {err:'该装备不支持'+S.tool+'色维修包'}; }
+  if(curMax<=0) return {err:'装备已报废（上限 ≤ 0）'};
+
+  const ratio=(curMax-curDur)/curMax;
+  const logTerm=Math.log10(curMax/eq.i);
+  let preMax=curMax*(1-ratio*(eq.l-logTerm));
+  preMax=Math.max(0,preMax);
+
+  const mdpNow=mdpAt(trd,S.curve);
+  if(curDur >= Math.min(curMax, eq.i*mdpNow) - 0.001){
+    return {noNeed:true, preMax, eff, bagMax, mdp:mdpNow, newMax:curMax, newDur:curDur,
+            newTrd:trd, used:0, leftRaw:S.pts, leftInt:Math.round(S.pts), repair:0, full:true};
+  }
+
+  const maxRepair=S.pts*eff;
+  const sol=solveFullX(eq,trd,curDur,maxRepair,S.curve);
+  const repair=sol.x;
+  const usePts=repair/eff;
+  const newTrd=trd+repair*(1-eq.l);
+  const mdp=mdpAt(newTrd,S.curve);
+  const newMax=eq.i*mdp;
+  const newDur=Math.min(curDur+repair,newMax);
+  const full=(newDur>=newMax-0.001);
+
+  if(repair<=0.05) return {err:'没有可修复空间（耐久已到上限）'};
+  if(newMax<1 && !full) return {err:'不可维修（维修后上限 '+fmt(newMax)+' < 1，已无法修复）'};
+
+  const leftRaw=S.pts-usePts;                    
+  const leftInt=ceil(Math.max(0,leftRaw));       
+  return {ok:true, preMax, eff, bagMax, reqPts:usePts, used:usePts, leftRaw, leftInt,
+          ptsShort:!sol.full,                    
+          repair, newTrd, mdp, newMax, newDur, full};
+}
+
+
+function computeOut(){
+  const eq=S.eq; if(!eq) return null;
+  if(!eq.p) return {err:'该装备缺少维修单价数据'};
+  const L=LEVELS[S.lvSel];
+  const curMax=S.curMax, curDur=S.curDur;
+  if(curMax<=0) return {err:'装备已报废（上限 ≤ 0）'};
+  const repairDur=Math.max(0, curMax-curDur);
+
+  let drop, branch, detail;
+  if(eq.s==='h'){
+    
+    const cv=buildCurve(eq);
+    const trdNow=trdAt(curMax/eq.i, cv);
+    const fullMax=eq.i*mdpAt(trdNow+repairDur, cv);
+    drop=Math.max(0, curMax-fullMax);
+    branch='曲线分支（New）';
+    detail=`新上限 ${fmt(fullMax)} → 掉落 ${fmt(drop)}`;
+  }else{
+    
+    const rate=Math.log10(eq.i/curMax) + eq.l;
+    drop=Math.max(0, rate*repairDur);
+    branch='公式分支（Old）';
+    detail=`损耗率 ${(rate*100).toFixed(2)}% × 缺口 ${fmt(repairDur)} = 掉落 ${fmt(drop)}`;
+  }
+  drop*=L.reduceMul;
+  const rawMax=curMax-drop;
+  
+  const round1=Math.round(rawMax*10)/10;
+  const newMax=Math.max(0, Math.floor(round1+1e-9));
+  const repair=Math.max(0, newMax-curDur);
+  const cost=Math.ceil((repair+1)*eq.p*L.costMul-1e-9);
+  return {repair, cost, newMax, rawMax, round1, drop, branch, detail,
+          unit:eq.p, mul:L.costMul, reduce:L.reduceMul, lv:L.n};
+}
+
+
+function renderList(){
+  const box=document.getElementById('list');
+  let arr=DATA.filter(x=>x.s===S.sec);
+  if(S.lv!=='all') arr=arr.filter(x=>x.lv===+S.lv);
+  if(S.q) arr=arr.filter(x=>x.n.includes(S.q));
+  if(!arr.length){ box.innerHTML='<div class="empty">没有匹配的装备</div>'; return; }
+  box.innerHTML=arr.map(x=>{
+    const tl = x.s==='h' ? (x.t==='有'?'有面罩':x.t==='无'?'无面罩':x.t) : x.t;
+    return `<div class="item ${S.eq&&S.eq.n===x.n?'on':''}" data-n="${x.n}">
+    <div><div class="nm">${x.n}</div><div class="meta">Lv${x.lv} · ${tl||'—'} · 损耗 ${(x.l*100).toFixed(0)}%</div></div>
+    <div class="rt">上限 ${x.i}</div></div>`;
+  }).join('');
+  box.querySelectorAll('.item').forEach(el=>el.onclick=()=>selectEq(el.dataset.n));
+}
+function renderChips(){
+  const lvs=[...new Set(DATA.filter(x=>x.s===S.sec).map(x=>x.lv))].sort((a,b)=>a-b);
+  document.getElementById('chips').innerHTML=
+    `<div class="chip ${S.lv==='all'?'on':''}" data-lv="all">全部</div>`+
+    lvs.map(l=>`<div class="chip ${S.lv==l?'on':''}" data-lv="${l}">L${l}</div>`).join('');
+  document.querySelectorAll('#chips .chip').forEach(el=>el.onclick=()=>{S.lv=el.dataset.lv;renderChips();renderList();});
+}
+function renderTools(){
+  const list=S.eq.s==='a'?TOOLS_ARMOR:TOOLS_HELMET;
+  const idx={蓝:0,紫:1,金:2,红:3};
+  document.getElementById('tools').innerHTML=list.map(t=>{
+    const eff=S.eq.e[idx[t.k]];
+    const dis=!eff;
+    return `<div class="tool ${S.tool===t.k?'on':''} ${dis?'dis':''}" data-k="${t.k}">
+      <div class="c"><span class="dot ${TOOL_CLASS[t.k]}"></span>${t.k}包</div>
+      <div class="p">${dis?'不可用':t.p+'点 · 效率 '+eff}</div></div>`;
+  }).join('');
+  document.querySelectorAll('#tools .tool').forEach(el=>{
+    if(el.classList.contains('dis')) return;
+    el.onclick=()=>{ S.tool=el.dataset.k;
+      const bag=(S.eq.s==='a'?TOOLS_ARMOR:TOOLS_HELMET).find(t=>t.k===S.tool).p;
+      S.pts=bag; document.getElementById('pts').value=bag;
+      renderTools(); refresh(); };
+  });
+}
+function renderLevels(){
+  document.getElementById('levels').innerHTML=Object.entries(LEVELS).map(([k,v])=>
+    `<div class="level ${S.lvSel===k?'on':''}" data-lv="${k}">
+      <div class="lv-n">${v.n}</div><div class="lv-d">${v.d}</div></div>`).join('');
+  document.querySelectorAll('#levels .level').forEach(el=>{
+    el.onclick=()=>{ S.lvSel=el.dataset.lv; renderLevels(); refresh(); };
+  });
+}
+function setMode(m){
+  S.mode=m;
+  document.querySelectorAll('.mtab').forEach(el=>el.classList.toggle('on',el.dataset.mode===m));
+  document.getElementById('paneIn').style.display  = m==='in' ?'block':'none';
+  document.getElementById('paneOut').style.display = m==='out'?'block':'none';
+  document.getElementById('outIn').style.display   = m==='in' ?'block':'none';
+  document.getElementById('outOut').style.display  = m==='out'?'block':'none';
+  document.getElementById('actIn').style.display   = m==='in' ?'flex' :'none';
+  document.getElementById('histPanel').style.display = (m==='in'&&S.eq)?'block':'none';
+  refresh();
+}
+
+function selectEq(name){
+  const eq=DATA.find(x=>x.n===name); if(!eq) return;
+  S.eq=eq; S.curve=buildCurve(eq); S.hist=[]; S.trd=0;
+  S.curMax=eq.i; S.curDur=0;
+  const list=(eq.s==='a'?TOOLS_ARMOR:TOOLS_HELMET);
+  S.tool=list.find(t=>eq.e[{蓝:0,紫:1,金:2,红:3}[t.k]])?.k||'紫';
+  S.pts=list.find(t=>t.k===S.tool).p;
+
+  document.getElementById('panel').style.display='block';
+  document.getElementById('opPanel').style.display='block';
+  document.getElementById('curvePanel').style.display='block';
+  document.getElementById('histPanel').style.display='block';
+  document.getElementById('eqName').textContent=eq.n;
+  const extra=[];
+  if(eq.s==='h'){ if(eq.t==='有') extra.push('有面罩'); else if(eq.t==='无') extra.push('无面罩'); }
+  else if(eq.t) extra.push(eq.t);
+  if(eq.aim&&eq.aim!=='/') extra.push('瞄准 '+eq.aim);
+  if(eq.mv&&eq.mv!=='/') extra.push('移动 '+eq.mv);
+  if(eq.hr&&eq.hr!=='/') extra.push('听力 '+eq.hr);
+  if(eq.ns&&eq.ns!=='/') extra.push('降噪 '+eq.ns);
+  if(eq.note) extra.push(eq.note);
+  document.getElementById('eqMeta').textContent=extra.join(' · ')||'—';
+  document.getElementById('initShow').textContent=eq.i;
+  document.getElementById('curMax').value=eq.i;
+  document.getElementById('curDur').value=0;
+  document.getElementById('curMax').max=eq.i;
+  document.getElementById('pts').value=S.pts;
+  document.getElementById('ptsMax').textContent=S.pts+' 点';
+  renderChips(); renderList(); renderTools(); renderLevels(); renderHist(); refresh();
+}
+
+function refresh(){
+  const eq=S.eq; if(!eq) return;
+  let curMax=parseFloat(document.getElementById('curMax').value);
+  let curDur=parseFloat(document.getElementById('curDur').value);
+  if(isNaN(curMax)) curMax=eq.i;
+  if(isNaN(curDur)) curDur=0;
+  curMax=Math.min(Math.max(curMax,0),eq.i);
+  curDur=Math.min(Math.max(curDur,0),curMax);
+  S.curMax=curMax; S.curDur=curDur;
+
+  if(S.mode==='out') return refreshOut();
+
+  const mdp=curMax/eq.i;
+  S.trd=trdAt(mdp,S.curve);
+  document.getElementById('trdShow').textContent=fmt(S.trd);
+
+  let ptsIn=parseFloat(document.getElementById('pts').value);
+  if(isNaN(ptsIn)) ptsIn=0;
+  S.pts=Math.max(0,Math.floor(ptsIn));       
+  const res=compute({curMax,curDur,trd:S.trd});
+  const warn=document.getElementById('warn');
+  const btn=document.getElementById('doRepair');
+
+  if(res&&res.err){
+    ['rRepair','rCost','rPts','rTrd','rMdp','rMax','rDur','rMarket'].forEach(id=>document.getElementById(id).textContent='—');
+    document.getElementById('rState').innerHTML=`<span class="badge b-bad">不可维修</span>`;
+    warn.style.display='block'; warn.textContent=res.err;
+    btn.disabled=true;
+    drawChart();
+    saveState();
+    return;
+  }
+  warn.style.display='none'; btn.disabled=!res||res.noNeed||S.pts<=0;
+  if(S.pts<=0&&!res.noNeed){
+    warn.style.display='block';
+    warn.textContent='该维修包点数已用尽，请更换维修包';
+  }
+
+  const dMax=res.newMax-curMax;
+  document.getElementById('rRepair').textContent=fmt(res.repair)+'（上限 '+(dMax>=0?'+':'')+fmt(dMax)+'）';
+  document.getElementById('rCost').textContent=fmt(res.used)+' 点';
+  document.getElementById('rPts').textContent=res.leftInt+' 点'
+    +(Math.abs(res.leftRaw-res.leftInt)>1e-6?'（结算 '+fmt(res.leftRaw,3)+' → 向上取整，游戏内按整数保存）':'（整数）');
+  document.getElementById('rTrd').textContent=fmt(res.newTrd);
+  document.getElementById('rMdp').textContent=(res.mdp*100).toFixed(2)+'%';
+  document.getElementById('rMax').textContent=fmt(res.newMax);
+  document.getElementById('rDur').textContent=fmt(res.newDur);
+  const mk=marketOf(eq,res.newMax);
+  document.getElementById('rMarket').innerHTML =
+    `<span class="wear ${mk.cls}">${mk.label}</span>`
+    + `<span class="wTips" style="margin-left:8px">${mk.tip}`
+    + (mk.pct!=null?` · ${(mk.pct*100).toFixed(1)}% 上限`:'') + `</span>`;
+  document.getElementById('rState').innerHTML=res.noNeed
+    ? '<span class="badge b-ok">已修满，无需维修</span>'
+    : (res.full
+        ? '<span class="badge b-ok">修满</span>'
+        : '<span class="badge b-warn">未修满（点数不足）</span>');
+  drawChart();
+  saveState();
+}
+
+
+function refreshOut(){
+  const eq=S.eq;
+  const curveOut=buildCurve(eq);              
+  const trdOut=trdAt(S.curMax/eq.i, curveOut);
+  document.getElementById('trdShow').textContent=fmt(trdOut);
+  const warn=document.getElementById('warn');
+  const r=computeOut();
+  const ids=['oCost','oMax','oMarket'];
+  if(!r||r.err){
+    ids.forEach(id=>document.getElementById(id).textContent='—');
+    document.getElementById('oDetail').textContent='';
+    document.getElementById('oMarket').innerHTML='';
+    warn.style.display='block'; warn.textContent=(r&&r.err)||'无法计算';
+    drawChart(curveOut, trdOut); saveState();
+    return;
+  }
+  warn.style.display='none';
+  document.getElementById('oCost').innerHTML =
+    '<span style="font-size:20px;font-weight:700;color:var(--brand)">'+r.cost.toLocaleString('zh-CN')+'</span>'
+    +'<span style="font-size:11.5px;color:var(--sub);margin-left:6px">哈夫币</span>';
+  document.getElementById('oMax').textContent=r.newMax;
+  const mk=marketOf(eq,r.newMax);
+  document.getElementById('oMarket').innerHTML =
+    `<span class="wear ${mk.cls}">${mk.label}</span>`
+    + `<span class="wTips" style="margin-left:8px">${mk.tip}`
+    + (mk.pct!=null?` · ${(mk.pct*100).toFixed(1)}% 上限`:'') + `</span>`;
+  document.getElementById('oDetail').textContent =
+    `${r.branch}：${r.detail}；×${r.reduce} → 理论上限 ${r.rawMax.toFixed(2)} → 精确到1位 ${r.round1.toFixed(1)} → 去尾 ${r.newMax}；`
+    + `修复耐久 ${r.repair}，金额 = (${r.repair} + 1) × 单价 ${eq.p} × ${r.mul} = ${r.cost.toLocaleString('zh-CN')} 哈夫币`;
+  drawChart(curveOut, trdOut); saveState();
+}
+
+function doRepair(){
+  const res=compute({curMax:S.curMax,curDur:S.curDur,trd:S.trd});
+  if(!res||res.err||res.noNeed) return;
+  const before=S.curMax;
+  S.hist.unshift({tool:S.tool,pts:res.used,repair:res.repair,before:before,after:res.newMax,trd:res.newTrd,full:res.full,left:res.leftInt});
+  S.curMax=res.newMax; S.curDur=res.newDur; S.trd=res.newTrd;
+  document.getElementById('curMax').value=fmt(res.newMax,2);
+  document.getElementById('curDur').value=fmt(res.newDur,2);
+  document.getElementById('pts').value=res.leftInt;   
+  renderHist(); refresh();
+}
+function renderHist(){
+  const tb=document.getElementById('hist');
+  if(!S.hist.length){ tb.innerHTML='<tr><td colspan="8" class="empty">还没有维修记录</td></tr>'; return; }
+  tb.innerHTML=S.hist.map((h,i)=>`<tr>
+    <td>${S.hist.length-i}</td>
+    <td><span class="dot ${TOOL_CLASS[h.tool]}"></span>${h.tool}</td>
+    <td>${fmt(h.pts)}</td>
+    <td>+${fmt(h.repair)}</td>
+    <td>${fmt(h.before)} → ${fmt(h.after)}</td>
+    <td>${fmt(h.trd)}</td>
+    <td>${h.left===undefined?'—':h.left+' 点'}</td>
+    <td>${h.full?'<span class="badge b-ok">修满</span>':'<span class="badge b-warn">未满</span>'}</td>
+  </tr>`).join('');
+}
+
+
+function drawChart(curveIn, trdIn){
+  const box=document.getElementById('chart');
+  const curve=curveIn||S.curve;
+  const trd=(trdIn==null?S.trd:trdIn);
+  if(!curve){ box.innerHTML=''; return; }
+  const W=680,H=220,PL=44,PR=16,PT=14,PB=28;
+  const pts=curve;
+  const xmax=pts[pts.length-1][0]||1;
+  const xs=v=>PL+(v/xmax)*(W-PL-PR);
+  const ys=v=>PT+(1-v)*(H-PT-PB);
+  let g='';
+  for(let i=0;i<=4;i++){
+    const y=PT+(H-PT-PB)*i/4, val=1-i/4;
+    g+=`<line class="gridline" x1="${PL}" y1="${y}" x2="${W-PR}" y2="${y}"/>`;
+    g+=`<text class="mlabel" x="${PL-6}" y="${y+3.5}" text-anchor="end">${(val*100).toFixed(0)}%</text>`;
+  }
+  for(let i=0;i<=5;i++){
+    const x=PL+(W-PL-PR)*i/5, val=xmax*i/5;
+    g+=`<text class="mlabel" x="${x}" y="${H-8}" text-anchor="middle">${val.toFixed(0)}</text>`;
+  }
+  const path=pts.map((p,i)=>(i?'L':'M')+xs(p[0]).toFixed(1)+' '+ys(p[1]).toFixed(1)).join(' ');
+  const dots=pts.map(p=>`<circle class="pt" cx="${xs(p[0]).toFixed(1)}" cy="${ys(p[1]).toFixed(1)}" r="2.6"/>`).join('');
+  const cx=xs(trd), cy=ys(mdpAt(trd,pts));
+  const marker=`<line x1="${cx.toFixed(1)}" y1="${PT}" x2="${cx.toFixed(1)}" y2="${H-PB}" stroke="#c0392b" stroke-dasharray="3 3" stroke-width="1"/>
+    <circle class="marker" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4.2"/>
+    <text class="mlabel" x="${Math.min(cx+8,W-90)}" y="${Math.max(cy-8,PT+10)}" fill="#c0392b">TRD ${fmt(trd)}</text>`;
+  box.innerHTML=`<svg viewBox="0 0 ${W} ${H}">
+    <line class="axis" x1="${PL}" y1="${H-PB}" x2="${W-PR}" y2="${H-PB}"/>
+    <line class="axis" x1="${PL}" y1="${PT}" x2="${PL}" y2="${H-PB}"/>
+    ${g}<path class="curve" d="${path}"/>${dots}${marker}
+  </svg>`;
+}
+
+
+const KEY='df_armor_repair_s11_v1';
+function saveState(){
+  if(!S.eq) return;
+  try{ localStorage.setItem(KEY, JSON.stringify({n:S.eq.n,cm:S.curMax,cd:S.curDur,h:S.hist.slice(0,60)})); }catch(e){}
+}
+function loadState(){
+  try{ return JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){ return null; }
+}
+
+
+document.querySelectorAll('.mtab').forEach(t=>t.onclick=()=>setMode(t.dataset.mode));
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on'); S.sec=t.dataset.sec; S.lv='all'; S.q='';
+  document.getElementById('q').value=''; renderChips(); renderList();
+});
+document.getElementById('q').oninput=e=>{S.q=e.target.value.trim();renderList();};
+document.getElementById('curMax').oninput=refresh;
+document.getElementById('curDur').oninput=refresh;
+document.getElementById('pts').oninput=refresh;
+document.getElementById('doRepair').onclick=doRepair;
+document.getElementById('reset').onclick=()=>{ if(S.eq) selectEq(S.eq.n); };
+
+
+(function(){
+  const btn=document.getElementById('btnContact'), panel=document.getElementById('panelContact');
+  if(!btn||!panel) return;
+  btn.onclick=e=>{ e.stopPropagation(); const on=panel.classList.toggle('open');
+    btn.classList.toggle('on',on); btn.setAttribute('aria-expanded',on?'true':'false'); };
+  document.addEventListener('click',e=>{
+    if(!panel.contains(e.target)&&e.target!==btn){ panel.classList.remove('open'); btn.classList.remove('on'); btn.setAttribute('aria-expanded','false'); }
+  });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ panel.classList.remove('open'); btn.classList.remove('on'); }});
+})();
+
+renderChips(); renderList();
+(function boot(){
+  const saved=loadState();
+  if(saved && DATA.some(x=>x.n===saved.n)){
+    selectEq(saved.n);
+    if(saved.cm!=null) document.getElementById('curMax').value=saved.cm;
+    if(saved.cd!=null) document.getElementById('curDur').value=saved.cd;
+    if(Array.isArray(saved.h)) S.hist=saved.h;
+    renderHist(); refresh();
+  } else if(DATA.length){
+    selectEq(DATA[0].n);
+  }
+  setMode(S.mode);
+})();
+
+
+const UPD_API='https://api.github.com/repos/StarryNightSquad/Delta-Force/contents/version.json';
+const UPD_RAW='https://raw.githubusercontent.com/StarryNightSquad/Delta-Force/main/version.json';
+const MY_VER='V1.0.2';
+
+async function fetchRemoteVersion(){
+  try{
+    const r=await fetch(UPD_API+'?t='+Date.now(),{headers:{Accept:'application/vnd.github.raw'},cache:'no-store'});
+    if(r.ok) return await r.json();
+  }catch(e){}
+  const r2=await fetch(UPD_RAW+'?t='+Date.now(),{cache:'no-store'});
+  if(!r2.ok) throw new Error('HTTP '+r2.status);
+  return await r2.json();
+}
+function cmpVer(a,b){
+  const pa=String(a).replace(/^v/i,'').split('.').map(x=>parseInt(x,10)||0);
+  const pb=String(b).replace(/^v/i,'').split('.').map(x=>parseInt(x,10)||0);
+  for(let i=0;i<Math.max(pa.length,pb.length);i++){
+    const x=pa[i]||0, y=pb[i]||0;
+    if(x!==y) return x<y?-1:1;
+  }
+  return 0;
+}
+(function(){
+  const btn=document.getElementById('btnCheck'), msg=document.getElementById('updMsg');
+  if(!btn||!msg) return;
+  btn.addEventListener('click', async ()=>{
+    btn.disabled=true; btn.textContent='检查中…';
+    msg.className='updmsg'; msg.textContent='';
+    try{
+      const j=await fetchRemoteVersion();
+      const remote=j['护甲维修模拟器'];
+      if(!remote){
+        msg.className='updmsg err';
+        msg.textContent='仓库 version.json 里还没有「护甲维修模拟器」条目';
+        return;
+      }
+      if(cmpVer(MY_VER,remote)>=0){
+        msg.className='updmsg ok'; msg.textContent='已是最新版（'+MY_VER+'）';
+      }else{
+        msg.className='updmsg new';
+        msg.textContent='有新版本 '+remote+'（当前 '+MY_VER+'），请到小黑盒 / 群文件获取';
+      }
+    }catch(e){
+      msg.className='updmsg err';
+      msg.textContent='检查失败（没联网，或仓库暂时访问不了） —— 请检查是否能正常访问 GitHub';
+    }finally{
+      btn.disabled=false; btn.textContent='检查更新';
+    }
+  });
+})();
+</script>
+</body>
+</html>
